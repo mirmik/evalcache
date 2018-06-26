@@ -23,13 +23,10 @@ def enable():
 	print(sorted(files))
 
 class FunctionHeader:
-	def __init__(self, func):
+	def __init__(self, func, hsh):
 		self.func = func
-		m = hashlib.sha1()
-		m.update(func.__qualname__.encode("utf-8"))
-		m.update(func.__module__.encode("utf-8"))
-		self.hsh = m.digest()
-		
+		self.hsh = hsh
+
 	def __call__(self, *args, **kwargs):
 		return Bind(None, self, *args, **kwargs)
 
@@ -37,7 +34,11 @@ class FunctionHeader:
 		return self.hsh
 
 def lazy(func):
-	return FunctionHeader(func)
+	m = hashlib.sha1()
+	m.update(func.__qualname__.encode("utf-8"))
+	m.update(func.__module__.encode("utf-8"))
+	hsh = m.digest()
+	return FunctionHeader(func, hsh)
 
 class Bind:
 	def __init__(self, obj, func, *args, **kwargs):
@@ -89,7 +90,6 @@ class Bind:
 
 	def gethash(self):
 		return self.hsh
-		#print(attr)
 
 def gethash(obj):
 	try:
