@@ -1,6 +1,7 @@
 import hashlib
 import os
 import pickle
+import inspect
 
 version = "0.0.1"
 
@@ -8,6 +9,8 @@ cache_directory = ".evalcache"
 cache_enabled = False
 
 files = None
+
+class Self: pass
 
 def enable():
 	global files
@@ -36,8 +39,36 @@ class FunctionHeader:
 	def gethash(self):
 		return self.hsh
 
+#class MethodHeader:
+#	def __init__(self, obj, func):
+#		self.func = func
+#		self.obj = obj
+#		m = hashlib.sha1()
+#		m.update(func.__qualname__.encode("utf-8"))
+#		m.update(func.__module__.encode("utf-8"))
+#		self.hsh = m.digest()
+#		
+#	def __call__(self, *args, **kwargs):
+#		return Bind(None, self, *args, **kwargs)
+#
+#	def gethash(self):
+#		return self.hsh
+
 def lazy(func):
 	return FunctionHeader(func)
+
+def test_new(cls): 
+	print("test_new", cls)
+	return cls.__wraped_class__.__new__(cls.__wraped_class__)
+
+def test_init(): print("test_init")
+
+def create_class_wrap(name, wraped_class):
+	return type(name, (Bind,), {
+		"__wraped_class__": wraped_class, 
+		"__new__":test_new, 
+		"__init__":test_init
+	})
 
 class Bind:
 	def __init__(self, obj, func, *args, **kwargs):
@@ -47,6 +78,12 @@ class Bind:
 		self.kwargs = kwargs
 		self.evalhash()
 		self.val = None
+
+	def __wrapmethod__(name, rettype):
+		pass
+
+	def __wrapmethods__(dict):
+		pass
 
 	def do(self):
 		args = [arg.eval() if isinstance(arg, Bind) else arg for arg in self.args]
