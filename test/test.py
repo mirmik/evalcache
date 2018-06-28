@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, "..")
 
 import evalcache
-evalcache.enable()
+#evalcache.enable()
 
 class A:
 	i=42
@@ -20,18 +20,29 @@ class A:
 		except:
 			return A(self.i + other)
 
-	def left():
-		pass
+	def left(self):
+		++self.i
+
+	def __str__(self):
+		return str("A: {}".format(self.i))
 
 ABind = evalcache.create_class_wrap("ABind", A)
+
+ABind.__wrapmethod__(ABind, "left", ABind)
+
 #BBind = evalcache.create_class_wrap("BBind")
 
 #ABind.__wrapmethods__({
 #	("left", ABind),
 #})
 
-a = ABind()
+a = ABind(1)#
 print(a)
+a.left().eval()
+
+#.left().eval()
+#a = ABind(1) + ABind(2)
+#print(a)
 
 #A = ABind
 #A(3)
