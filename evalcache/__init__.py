@@ -17,7 +17,7 @@ files = None
 
 def hashlist(x):
 	m = hashlib.sha1()
-	for a in obj: 
+	for a in x: 
 		m.update(gethash(a))
 	return m.digest()
 	
@@ -30,17 +30,22 @@ hashfuncs = {
 	list: hashlist,
 }
 
-def enable():
-	global files
-	global cache_enabled
-	cache_enabled = True
-	if not os.path.exists(cache_directory):
-		os.system("mkdir {}".format(cache_directory))
-		files = set()
-		return
+enabled = False
 
-	lst = os.listdir(cache_directory)
-	files = set(lst)
+def enable():
+	global enabled
+	if enabled == False:
+		global files
+		global cache_enabled
+		cache_enabled = True
+		if not os.path.exists(cache_directory):
+			os.system("mkdir {}".format(cache_directory))
+			files = set()
+			return
+
+		lst = os.listdir(cache_directory)
+		files = set(lst)
+	enabled = True
 
 class LazyFunction:
 	"""Ленивая обёртка для функций. 
@@ -115,7 +120,7 @@ class LazyObject:
 
 	@staticmethod
 	def __lazyexpand__(arg):
-		if isinstance(arg, list): return [LazyObject.expand(a) for a in arg] 
+		if isinstance(arg, list): return [LazyObject.__lazyexpand__(a) for a in arg] 
 		return arg.eval() if isinstance(arg, LazyObject) else arg
 
 	def __lazydo__(self):
@@ -133,14 +138,14 @@ class LazyObject:
 			return self.__lazyvalue__
 
 		if cache_enabled and self.__lazyhexhash__ in files:
-			print("load", self.__lazyhexhash__)
+			#print("load", self.__lazyhexhash__)
 			fl = open(os.path.join(cache_directory, self.__lazyhexhash__), "rb")
 			self.__lazyvalue__ = pickle.load(fl)
 			return self.__lazyvalue__
 
 		self.__lazyvalue__ = self.__lazydo__()
 		if cache_enabled: 
-			print("save", self.__lazyhexhash__)
+			#print("save", self.__lazyhexhash__)
 			fl = open(os.path.join(cache_directory, self.__lazyhexhash__), "wb")
 			pickle.dump(self.__lazyvalue__, fl)
 		return self.__lazyvalue__		
