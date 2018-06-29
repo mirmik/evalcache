@@ -8,7 +8,7 @@ import pickle
 import inspect
 import types
 
-version = "0.1.0"
+version = "0.1.1"
 
 cache_directory = ".evalcache" 
 cache_enabled = False
