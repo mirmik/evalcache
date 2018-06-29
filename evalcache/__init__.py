@@ -8,7 +8,7 @@ import pickle
 import inspect
 import types
 
-version = "0.0.2"
+version = "0.1.0"
 
 cache_directory = ".evalcache"
 cache_enabled = False
@@ -168,7 +168,7 @@ def gethash(obj):
 	else:
 		m = hashlib.sha1()
 		m.update(str(obj.__class__).encode("utf-8"))
-		m.update(str(sorted(dir(obj))).encode("utf-8"))
+		m.update(str(repr(obj)).encode("utf-8"))
 		return m.digest()
 	
 def create_class_wrap(name, parent = LazyObject, wrapclass = None):
