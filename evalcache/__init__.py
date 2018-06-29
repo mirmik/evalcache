@@ -1,3 +1,7 @@
+#coding: utf-8
+##@file evalcache/__init__.py
+
+
 import hashlib
 import os
 import pickle
@@ -11,9 +15,20 @@ cache_enabled = False
 
 files = None
 
-hashfuncs = {}
+def hashlist(x):
+	m = hashlib.sha1()
+	for a in obj: 
+		m.update(gethash(a))
+	return m.digest()
+	
 
-class Self: pass
+hashfuncs = { 
+	str : 	lambda x: x.encode("utf-8"),
+	int : 	lambda x: str(x).encode("utf-8"),
+	float : lambda x: str(x).encode("utf-8"),
+	tuple : hashlist,
+	list: hashlist,
+}
 
 def enable():
 	global files
@@ -28,7 +43,18 @@ def enable():
 	files = set(lst)
 
 class LazyFunction:
+	"""Ленивая обёртка для функций. 
+
+	Представляет собой фабрику для создания ленивых объектов. 
+	"""
 	def __init__(self, func, rettype):
+		"""
+		Parametrs:
+		----------
+		func - оборачиваемая функция или метод.
+		rettype - тип генерируемого фабрикой объекта, или функция, определяющая тип
+		при вызове, исходя из переданных параметров.
+		"""
 		self.func = func
 		self.rettype = rettype
 		m = hashlib.sha1()
@@ -39,11 +65,13 @@ class LazyFunction:
 		self.__lazyhash__ = m.digest()
 		
 	def __call__(self, *args, **kwargs):
+		"""Работа по производству ленивого объекта."""
 		if (isinstance(self.rettype, types.FunctionType)): self.rettype = self.rettype(*args, **kwargs)
 		obj = self.rettype.__construct__(self, *args, **kwargs)
 		return obj
 
 	def __get__(self, instance, cls):
+		"""Ленивая функция поддерживает синтаксис вызова метода"""
 		if instance is None:
 			return self
 		else:
@@ -122,29 +150,35 @@ class LazyObject:
 	def eval(self): return self.__lazyeval__()
 
 def gethash(obj):
-	try:
-		return obj.__lazyhash__
-	except(Exception):
-		pass
-	if isinstance(obj, str):
-		return obj.encode("utf-8")
-	if isinstance(obj, int) or isinstance(obj, float):
-		return str(obj).encode("utf-8")
-	if isinstance(obj, tuple) or isinstance(obj, list):
-		m = hashlib.sha1()
-		for a in obj: 
-			m.update(gethash(a))
-		return m.digest()
-	if obj.__class__ in hashfuncs:
-		return hashfuncs[obj.__class__](obj)
+	"""Получение хэша объекта или аргумента.
+
+	В зависимости от типа объекта:
+	Для ленивых объектов использует заранее расчитанный хэш.
+	Для остальных объектов, сначала ищет хэш функцию в таблице hashfunc
+	При неудаче пробует сконструировать хеш на основе общих соображений 
+	о наследнике объектного типа.  
+	"""
+	if hasattr(obj, "__lazyhash__"): return obj.__lazyhash__
+	elif obj.__class__ in hashfuncs: return hashfuncs[obj.__class__](obj)
 	else:
 		m = hashlib.sha1()
 		m.update(str(obj.__class__).encode("utf-8"))
-		m.update(str(sorted(obj.__dict__)).encode("utf-8"))
+		m.update(str(sorted(dir(obj))).encode("utf-8"))
 		return m.digest()
 	
-
 def create_class_wrap(name, parent = LazyObject, wrapclass = None):
+	"""Функция генерирует класс ленивого объекта.
+
+	Parameters: 
+	-----------
+	parent - установить в качестве предка другой ленивый тип. Используется
+	при создании оберток над иерархиями типов.
+
+	wrapclass - Класс, тип которого оборачивает конструируемый тип.
+	Не обязателен для определения. При определении данного параметра
+	появляется возможность использовать конструктор оборачивоемого класса
+	как ленивый метод.
+	"""
 	T = type(
 		name, 
 		(parent,), 
@@ -156,11 +190,13 @@ def create_class_wrap(name, parent = LazyObject, wrapclass = None):
 	return T
 
 def lazy(rettype = LazyObject):
-	def decorator(func):
-		return LazyFunction(func, rettype)
-	return decorator
-
-def lazy_universal(rettype_func):
-	def decorator(func):
-		return LazyFunction(func, rettype_func)
-	return decorator
+	"""Декоратор, превращающий функцию в ленивую.
+	
+	Вызов декарированной функции приведет к созданию ленивого указанного объекта.
+	
+	Parameters:
+	----------
+	rettype - Тип ленивого указателя. rettype может быть callable, который будет
+	вызван для определения типа объекта перед созданием ленивого объекта.
+	"""
+	return lambda func: LazyFunction(func, rettype)
