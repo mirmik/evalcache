@@ -21,7 +21,7 @@ class A:
 			return A(self.i + other)
 
 	def left(self):
-		++self.i
+		return A(self.i+1)
 
 	def __str__(self):
 		return str("A: {}".format(self.i))
@@ -36,9 +36,13 @@ ABind.__wrapmethod__(ABind, "left", ABind)
 #	("left", ABind),
 #})
 
-a = ABind(1)#
-print(a)
-a.left().eval()
+a = ABind(1)
+
+a = a.left()
+a = a.left()
+
+print(a.eval())
+
 
 #.left().eval()
 #a = ABind(1) + ABind(2)
