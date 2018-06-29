@@ -10,7 +10,7 @@ import types
 
 version = "0.1.0"
 
-cache_directory = ".evalcache"
+cache_directory = ".evalcache" 
 cache_enabled = False
 
 files = None
