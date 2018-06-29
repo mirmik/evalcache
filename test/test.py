@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, "..")
 
 import evalcache
-#evalcache.enable()
+evalcache.enable()
 
 class A:
 	i=42
@@ -26,21 +26,27 @@ class A:
 	def __str__(self):
 		return str("A: {}".format(self.i))
 
-ABind = evalcache.create_class_wrap("ABind", A)
+LazyA = evalcache.create_class_wrap("LazyA", wrapclass = A)
+LazyA.__wrapmethod__(name = "left", rettype = LazyA, wrapfunc = A.left)
 
-ABind.__wrapmethod__(ABind, "left", ABind)
+@evalcache.lazy(LazyA)
+def genA():
+	return A(1)
 
-#BBind = evalcache.create_class_wrap("BBind")
+@evalcache.lazy(LazyA)
+def incA(arg):
+	return A(arg.i + 1)
 
-#ABind.__wrapmethods__({
-#	("left", ABind),
-#})
-
-a = ABind(1)
+a = genA()
 
 a = a.left()
 a = a.left()
 
+a = incA(a)
+
+b = genA()
+
+print(b.eval())
 print(a.eval())
 
 

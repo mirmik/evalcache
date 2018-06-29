@@ -4,7 +4,7 @@ import pickle
 import inspect
 import types
 
-version = "0.0.1"
+version = "0.0.2"
 
 cache_directory = ".evalcache"
 cache_enabled = False
@@ -27,57 +27,27 @@ def enable():
 	lst = os.listdir(cache_directory)
 	files = set(lst)
 
-class FunctionHeader:
+class LazyFunction:
 	def __init__(self, func, rettype):
 		self.func = func
 		self.rettype = rettype
 		m = hashlib.sha1()
 		if hasattr(func, "__qualname__"): m.update(func.__qualname__.encode("utf-8"))
-		else: m.update(func.__name__.encode("utf-8"))
-		if (func.__module__): m.update(func.__module__.encode("utf-8"))
-		self.hsh = m.digest()
+		elif hasattr(func, "__name__") : m.update(func.__name__.encode("utf-8"))
+		else: m.update(func.encode("utf-8")) 
+		if hasattr(func, "__module__") and func.__module__: m.update(func.__module__.encode("utf-8"))
+		self.__lazyhash__ = m.digest()
 		
 	def __call__(self, *args, **kwargs):
-		print("__call__", *args)
 		if (isinstance(self.rettype, types.FunctionType)): self.rettype = self.rettype(*args, **kwargs)
 		obj = self.rettype.__construct__(self, *args, **kwargs)
 		return obj
-
 
 	def __get__(self, instance, cls):
 		if instance is None:
 			return self
 		else:
 			return types.MethodType(self, instance)
-
-	def gethash(self):
-		return self.hsh
-
-
-
-#class MethodHeader:
-#	def __init__(self, obj, func):
-#		self.func = func
-#		m = hashlib.sha1()
-#		m.update(func.__qualname__.encode("utf-8"))
-#		m.update(func.__module__.encode("utf-8"))
-#		self.hsh = m.digest()
-		
-#	def __call__(self, *args, **kwargs):
-#		return Bind(self, *args, **kwargs)
-
-#	def gethash(self):
-#		return self.hsh
-
-def lazy(rettype):
-	def decorator(func):
-		return FunctionHeader(func, rettype)
-	return decorator
-
-def lazy_universal(rettype_func):
-	def decorator(func):
-		return FunctionHeader(func, rettype_func)
-	return decorator
 
 def wraped_new(cls, *args, **kwargs):
 	obj = cls.__wraped_class__.__new__(cls.__wraped_class__)
@@ -87,78 +57,73 @@ def wraped_new(cls, *args, **kwargs):
 def do_nothing(*args, **kwargs):
 	pass
 
-class Bind:
+class LazyObject:
 	def __init__(self, func, *args, **kwargs):
 		self.func = func
 		self.args = args
 		self.kwargs = kwargs
-		self.evalhash()
-		self.val = None
-
-	@classmethod
-	def __construct__(cls, funchead, *args, **kwargs):
-		obj = object.__new__(cls) 
-		Bind.__init__(obj, funchead, *args, **kwargs)
-		return obj
-
-	@classmethod
-	def __wrapmethod__(cls, name, rettype):
-		setattr(
-			cls, 
-			name, 
-			FunctionHeader(getattr(cls.__wraped_class__, name), rettype))
-
-	@staticmethod
-	def expand(arg):
-		if isinstance(arg, list): return [Bind.expand(a) for a in arg] 
-		return arg.eval() if isinstance(arg, Bind) else arg
-
-	def do(self):
-		args = [Bind.expand(arg) for arg in self.args]
-		kwargs = {k : Bind.expand(v) for k, v in self.kwargs.items()}
-		return self.func.func(*args, **kwargs)
-
-	def eval(self):
-		if (self.val != None):
-			return self.val
-
-		if cache_enabled and self.hexhsh in files:
-			self.load()
-			return self.val
-
-		self.val = self.do()
-		if cache_enabled: self.save()
-		return self.val		
-
-	def save(self):
-		print("save")
-		fl = open(os.path.join(cache_directory, self.hexhsh), "wb")
-		pickle.dump(self.val, fl)
-
-	def load(self):
-		print("load", self)
-		fl = open(os.path.join(cache_directory, self.hexhsh), "rb")
-		self.val = pickle.load(fl)
-
-	def evalhash(self):
 		m = hashlib.sha1()		
 		m.update(gethash(str(self.__class__)))
-		m.update(self.func.gethash())
+		m.update(self.func.__lazyhash__)
 		for a in self.args: 
 			m.update(gethash(a))
 		for k, v in sorted(self.kwargs.items()): 
 			m.update(gethash(k)) 
 			m.update(gethash(v))
-		self.hsh = m.digest()
-		self.hexhsh = m.hexdigest()
+		self.__lazyhash__ = m.digest()
+		self.__lazyhexhash__ = m.hexdigest()
+		self.__lazyvalue__ = None
 
-	def gethash(self):
-		return self.hsh
-		#print(attr)
+	@classmethod
+	def __construct__(cls, funchead, *args, **kwargs):
+		obj = object.__new__(cls) 
+		LazyObject.__init__(obj, funchead, *args, **kwargs)
+		return obj
+
+	@classmethod
+	def __wrapmethod__(cls, name, rettype, wrapfunc = None):
+		if (wrapfunc == None): wrapfunc = name
+		setattr(cls, name, LazyFunction(wrapfunc, rettype))
+
+	@staticmethod
+	def __lazyexpand__(arg):
+		if isinstance(arg, list): return [LazyObject.expand(a) for a in arg] 
+		return arg.eval() if isinstance(arg, LazyObject) else arg
+
+	def __lazydo__(self):
+		args = [LazyObject.__lazyexpand__(arg) for arg in self.args]
+		kwargs = {k : LazyObject.__lazyexpand__(v) for k, v in self.kwargs.items()}
+		if (isinstance(self.func.func, str)):
+			func = getattr(args[0], self.func.func)
+			return func(*args[1:], **kwargs)
+		else: 
+			func = self.func.func
+			return func(*args, **kwargs)
+
+	def __lazyeval__(self):
+		if (self.__lazyvalue__ != None):
+			return self.__lazyvalue__
+
+		if cache_enabled and self.__lazyhexhash__ in files:
+			print("load", self.__lazyhexhash__)
+			fl = open(os.path.join(cache_directory, self.__lazyhexhash__), "rb")
+			self.__lazyvalue__ = pickle.load(fl)
+			return self.__lazyvalue__
+
+		self.__lazyvalue__ = self.__lazydo__()
+		if cache_enabled: 
+			print("save", self.__lazyhexhash__)
+			fl = open(os.path.join(cache_directory, self.__lazyhexhash__), "wb")
+			pickle.dump(self.__lazyvalue__, fl)
+		return self.__lazyvalue__		
+
+	def do(self): return self.__lazydo__()
+	
+	def eval(self): return self.__lazyeval__()
 
 def gethash(obj):
 	try:
-		return obj.gethash()
+		return obj.__lazyhash__
 	except(Exception):
 		pass
 	if isinstance(obj, str):
@@ -179,8 +144,23 @@ def gethash(obj):
 		return m.digest()
 	
 
-def create_class_wrap(name, wraped_class, parent = Bind):
-	T = type(name, (parent,), { "__wraped_class__": wraped_class, })
-	setattr(T, "__new__", FunctionHeader(wraped_new, T))
-	setattr(T, "__init__", do_nothing)
+def create_class_wrap(name, parent = LazyObject, wrapclass = None):
+	T = type(
+		name, 
+		(parent,), 
+		{ "__wraped_class__": wrapclass, } if wrapclass else {}
+	)
+	if wrapclass:
+		setattr(T, "__new__", LazyFunction(wraped_new, T))
+		setattr(T, "__init__", do_nothing)
 	return T
+
+def lazy(rettype = LazyObject):
+	def decorator(func):
+		return LazyFunction(func, rettype)
+	return decorator
+
+def lazy_universal(rettype_func):
+	def decorator(func):
+		return LazyFunction(func, rettype_func)
+	return decorator
