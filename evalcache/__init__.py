@@ -56,11 +56,11 @@ def enable():
 		files  = set(lst)
 		cache_enabled = True
 	
-def hashlist(x):
+def _hashlist(x):
 	"""Хэшфункция list-like объектов"""
 	m = hashlib.sha1()
 	for a in x: 
-		m.update(gethash(a))
+		m.update(_hash(a))
 	return m.digest()
 
 ## Хэшфункции базовых типов
@@ -68,11 +68,11 @@ hashfuncs = {
 	str : 	lambda x: x.encode("utf-8"),
 	int : 	lambda x: str(x).encode("utf-8"),
 	float : lambda x: str(x).encode("utf-8"),
-	tuple : hashlist,
-	list: hashlist,
+	tuple : _hashlist,
+	list: _hashlist,
 }
 
-def gethash(obj):
+def _hash(obj):
 	"""Получение хэша объекта или аргумента.
 
 	В зависимости от типа объекта:
@@ -128,13 +128,13 @@ class LazyFunction:
 		else:
 			return types.MethodType(self, instance)
 
-def wraped_new(cls, *args, **kwargs):
+def _wraped_new(cls, *args, **kwargs):
 	"""Функция-обертка конструктора объекта"""
 	obj = cls.__wraped_class__.__new__(cls.__wraped_class__)
 	cls.__wraped_class__.__init__(obj, *args, **kwargs)
 	return obj
 
-def do_nothing(*args, **kwargs):
+def _do_nothing(*args, **kwargs):
 	pass
 
 class LazyObject:
@@ -145,13 +145,13 @@ class LazyObject:
 		self.kwargs = kwargs
 		if cache_enabled:
 			m = hashlib.sha1()		
-			m.update(gethash(str(self.__class__)))
+			m.update(_hash(str(self.__class__)))
 			m.update(self.func.__lazyhash__)
 			for a in self.args: 
-				m.update(gethash(a))
+				m.update(_hash(a))
 			for k, v in sorted(self.kwargs.items()): 
-				m.update(gethash(k)) 
-				m.update(gethash(v))
+				m.update(_hash(k)) 
+				m.update(_hash(v))
 			self.__lazyhash__ = m.digest()
 			self.__lazyhexhash__ = m.hexdigest()
 		self.__lazyvalue__ = None
@@ -241,8 +241,8 @@ def create_class_wrap(name, parent = LazyObject, wrapclass = None):
 		{ "__wraped_class__": wrapclass, } if wrapclass else {}
 	)
 	if wrapclass:
-		setattr(T, "__new__", LazyFunction(wraped_new, T))
-		setattr(T, "__init__", do_nothing)
+		setattr(T, "__new__", LazyFunction(_wraped_new, T))
+		setattr(T, "__init__", _do_nothing)
 	return T
 
 def lazy(rettype = LazyObject):
