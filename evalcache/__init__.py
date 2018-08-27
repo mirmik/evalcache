@@ -1,28 +1,6 @@
 #coding: utf-8
 ##@file evalcache/__init__.py
 ##Библиотека дискового кэширования ленивых вычислений.
-##
-## Example:
-##
-## import evalcache
-## evalcache.enable()
-##
-## class EvalRes:
-##		def something_do():
-##			...
-## 		...
-##
-## Lazy = evalcache.create_class_wrap("Lazy", wrapclass = EvalRes) 
-## Lazy.__wrapmethod__(name = "something_do", rettype = EvalRes, wrapfunc = EvalRes.something_do)
-##
-## @lazy(Lazy)
-## def very_long_evaluation(args ...):
-##		...
-##		...
-##		...
-##
-## result = very_long_evaluation(args ...).something_do()
-##
 
 import hashlib
 import types
