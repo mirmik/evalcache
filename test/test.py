@@ -6,7 +6,10 @@ import sys
 sys.path.insert(0, "..")
 
 import evalcache
-evalcache.enable()
+from evalcache.dirdict import dirdict
+import hashlib
+
+lazy = evalcache.Lazy(cache = dirdict(".evalcache"), algo = hashlib.sha256)
 
 class A:
 	i=42
@@ -26,43 +29,15 @@ class A:
 	def __str__(self):
 		return str("A: {}".format(self.i))
 
-LazyA = evalcache.create_class_wrap("LazyA", wrapclass = A)
-LazyA.__wrapmethod__(name = "left", rettype = LazyA, wrapfunc = A.left)
+create_A = lazy.ctor(A)
 
-@evalcache.lazy(LazyA)
-def genA():
-	return A(1)
+@lazy
+def foo(i):
+	return 3 + i
 
-@evalcache.lazy(LazyA)
-def incA(arg):
-	return A(arg.i + 1)
+print(foo(7).__lazyeval__())
+print(foo(7).__lazyeval__())
+a= create_A(33)
 
-a = genA()
-
-a = a.left()
-a = a.left()
-
-a = incA(a)
-
-b = genA()
-
-print(b.eval())
-print(a.eval())
-
-
-#.left().eval()
-#a = ABind(1) + ABind(2)
-#print(a)
-
-#A = ABind
-#A(3)
-
-#@evalcache.lazy(ABind)
-#def add(a, b):
-#	return a + b
-
-
-#a = A(1)
-#b = A(2)
-
-#add(a, b).left()
+print(evalcache.unlazy(a))
+print(evalcache.unlazy(a.left()))
