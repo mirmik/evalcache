@@ -5,6 +5,8 @@
 import hashlib
 import types
 
+from evalcache.dirdict import dirdict as DirCache 
+
 ## Версия пакета
 version = "0.1.2" 
 diagnostic_enabled = False
@@ -25,9 +27,6 @@ def _updatehash(m, obj):
 	При неудаче пробует сконструировать хеш на основе общих соображений 
 	о наследнике объектного типа.  
 	"""
-	#if hasattr(obj, "__lazyhash__"): 
-	#	return obj.__lazyhash__
-	#else:
 	if isinstance(obj, types.FunctionType):
 		if hasattr(obj, "__qualname__"): 
 			m.update(obj.__qualname__.encode("utf-8"))
@@ -119,6 +118,20 @@ class LazyObject:
 
 	def __repr__(self):
 		return self.__lazyhexhash__
+
+	def unlazy(self):
+		ret = self.__lazyeval__()
+		if hasattr(ret, "unlazy"):
+			print("warn: Shadow unlazy method.")
+		return ret
+
+	def eval(self):
+		print("warn: Eval method is deprecated. You should use unlazy.")
+		ret = self.__lazyeval__()
+		if hasattr(ret, "eval"):
+			print("warn: Shadow eval method.")
+		return ret
+
 
 class LazyResult(LazyObject):
 	def __init__(self, lazifier, generic, *args, **kwargs):
