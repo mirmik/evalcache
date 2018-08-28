@@ -8,7 +8,7 @@ import types
 from evalcache.dirdict import dirdict as DirCache 
 
 ## Версия пакета
-version = "0.1.2" 
+version = "0.2.0" 
 diagnostic_enabled = False
 
 def enable_diagnostic():
