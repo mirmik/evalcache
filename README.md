@@ -50,7 +50,7 @@ lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
 
 ### DirCache
 DirCache is a dict-like object that used pickle to store values in key-named files.
-It very simple cache variant and it can be changed to more progressive variant if need. 
+It very simple cache and it can be changed to more progressive option if need. 
 ```python
 evalcache.DirCache(".evalcache")
 ```  
