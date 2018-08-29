@@ -23,7 +23,7 @@ lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
 
 @lazy
 def func(a,b,c):
-	return do_something(a,b,c)
+    return do_something(a,b,c)
 
 lazyresult = func(1,2,3)
 result = lazyresult.unlazy()
