@@ -13,8 +13,8 @@ Since the library saves every computed object in the cache, including intermedia
 pip3 install evalcache
 ```
 
-## Detail
-### Base syntax example
+## Details
+Base syntax example:
 ```python
 import evalcache
 
@@ -25,8 +25,31 @@ def func(a,b,c):
     return do_something(a,b,c)
 
 lazyresult = func(1,2,3)
-result = lazyresult.unlazy()
+result = lazyresult.unlazy() #alternative: result = evalcache.unlazy(lazyresult)
 ```
+
+In that example we can see based class and object:
+You should instance "evalcache.Lazy" for start work. "Lazy" get "cache" as parametr. Cache is a dict-like object those will store and load our evaluation's results. "Lazy" instance "lazy" can be used as decorator for create "LazyObjects". Decorated object "func" is a LazyObject. "func" can generate another lazyobject, as "lazyresult", for example with callable interface. For get evaluation result we use "unlazy" method.
+
+Diagnostic:
+We can visualize cache operations:
+```python
+evalcache.diagnostic = True
+```
+in this mode, when you use unlazy, you will see console output:
+endp - get endpoint object.
+fget - get variable from local object store.
+load - get early stored value from cache.
+save - evaluation executed and value stored.
+
+Hash algorithm:
+You can choose algoritm from hashlib or specify user's hashlib-like
+```python
+lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
+```
+
+
+
 
 ## Contact
 mirmik(mirmikns@yandex.ru)

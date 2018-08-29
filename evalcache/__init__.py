@@ -6,12 +6,15 @@ import types
 from evalcache.dircache import DirCache 
 
 version = "0.2.0" 
-diagnostic_enabled = False
+diagnostic = False
 
 def enable_diagnostic():
-	"""Enable console output about cache operations"""
-	global diagnostic_enabled
-	diagnostic_enabled = True
+	"""Enable console output about cache operations
+
+	Deprecated!!!
+	"""
+	global diagnostic
+	diagnostic = True
 
 class Lazy:
 	"""Base library class. Decorator for callable lazifying.
@@ -158,16 +161,20 @@ def unlazy(obj):
 	If object wasn't stored early, it performs evaluation and stores a result in cache and local memory (save).
 	"""
 	if (obj.__lazyvalue__ != None):
-		if diagnostic_enabled: print('fget', obj.__lazyhexhash__)
+		if diagnostic: 
+			if isinstance(obj, LazyGeneric):
+				print('endp', obj.__lazyhexhash__)				
+			else: 
+				print('fget', obj.__lazyhexhash__)
 		return obj.__lazyvalue__
 
 	if obj.__lazyhexhash__ in obj.__lazybase__.cache:
-		if diagnostic_enabled: print('load', obj.__lazyhexhash__)
+		if diagnostic: print('load', obj.__lazyhexhash__)
 		obj.__lazyvalue__ = obj.__lazybase__.cache[obj.__lazyhexhash__]
 		return obj.__lazyvalue__
 	else:
 		obj.__lazyvalue__ = lazydo(obj)		
-		if diagnostic_enabled: print('save', obj.__lazyhexhash__)
+		if diagnostic: print('save', obj.__lazyhexhash__)
 		obj.__lazybase__.cache[obj.__lazyhexhash__] = obj.__lazyvalue__
 		return obj.__lazyvalue__
 
