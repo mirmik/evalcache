@@ -14,7 +14,7 @@ pip3 install evalcache
 ```
 
 ## Detail
-# Base syntax example
+### Base syntax example
 ```python
 import evalcache
 
