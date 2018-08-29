@@ -38,14 +38,14 @@ class A:
 	def __repr__(self):
 		return str("A: {}".format(self.i))
 
-create_A = lazy.ctor(A)
+create_A = lazy(A)
 
 @lazy
 def foo(i):
 	return 3 + i
 
-print(foo(7).__lazyeval__())
-print(foo(7).__lazyeval__())
+print(foo(7).unlazy())
+print(foo(7).unlazy())
 print((foo(7) + foo(33)).unlazy())
 a = create_A(33)
 
