@@ -11,12 +11,12 @@ Since the library saves every computed object in the cache, including intermedia
 ## Detail
 
 ## Install
-```
+```sh
 pip3 install evalcache
 ```
 
 ## Base syntax example
-```
+```python
 import evalcache
 
 lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
