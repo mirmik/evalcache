@@ -8,14 +8,13 @@ The task of the library is to save the result of the computation once performed 
 
 Since the library saves every computed object in the cache, including intermediate objects, it can pick up changes in the calculation tree from any step. Thus, previously received data, if they can be applied to a new calculation tree, will be used. This allows you to not make heavy preliminary calculations in separate files, and load them transparently, and also compare results with small changes in input parameters without multiple results remaking.
 
-## Detail
-
 ## Install
 ```sh
 pip3 install evalcache
 ```
 
-## Base syntax example
+## Detail
+# Base syntax example
 ```python
 import evalcache
 
