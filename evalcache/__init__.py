@@ -1,8 +1,4 @@
 #coding: utf-8
-##@file evalcache/__init__.py
-##
-##Lazy evaluation cache library
-##@author mirmik(mirmikns@yandex.ru)
 
 import hashlib
 import types
@@ -85,7 +81,17 @@ class LazyObject:
 		return ret
 
 class LazyResult(LazyObject):
-	""""""
+	"""Derived lazy object.
+
+	Can be constructed with another LazyObject methods.
+
+	Arguments:
+	----------
+	lazifier -- parental lazy decorator
+	generic -- callable used for object evaluation
+	args -- arguments used for object evaluation
+	kwargs -- keyword arguments used for object evaluation
+	"""
 
 	def __init__(self, lazifier, generic, args = (), kwargs = {}):
 		LazyObject.__init__(self, lazifier)	
@@ -129,10 +135,10 @@ class LazyGeneric(LazyObject):
 
 	def __get__(self, instance, cls):
 		"""With __get__ method we can use lazy decorator on class's methods"""
-		if instance is None:
-			return self
-		else:
+		if instance != None and isinstance(self.__lazyvalue__, types.FunctionType):
 			return types.MethodType(self, instance)
+		else:
+			return self
 
 	def __repr__(self): return "<LazyGeneric(value:{})>".format(self.__lazyvalue__)
 
