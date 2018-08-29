@@ -36,11 +36,11 @@ We can visualize cache operations:
 ```python
 evalcache.diagnostic = True
 ```
-in this mode, when you use unlazy, you will see console output:
-endp - get endpoint object.
-fget - get variable from local object store.
-load - get early stored value from cache.
-save - evaluation executed and value stored.
+in this mode, when you use unlazy, you will see console output:  
+endp - get endpoint object.  
+fget - get variable from local object store.  
+load - get early stored value from cache.  
+save - evaluation executed and value stored.  
 
 ### Hash algorithm  
 You can choose algoritm from hashlib or specify user's hashlib-like algorithm.
