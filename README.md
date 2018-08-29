@@ -14,7 +14,7 @@ pip3 install evalcache
 ```
 
 ## Details
-### Base syntax example
+### Base example
 ```python
 import evalcache
 
@@ -28,7 +28,7 @@ lazyresult = func(1,2,3)
 result = lazyresult.unlazy() #alternative: result = evalcache.unlazy(lazyresult)
 ```
 
-In that example we can see based class and object:
+In that example we can see based classes and objects:
 You should instance "evalcache.Lazy" for start work. "Lazy" get "cache" as parametr. Cache is a dict-like object those will store and load our evaluation's results. "Lazy" instance "lazy" can be used as decorator for create "LazyObjects". Decorated object "func" is a LazyObject. "func" can generate another lazyobject, as "lazyresult", for example with callable interface. For get evaluation result we use "unlazy" method.
 
 ### Diagnostic  
@@ -47,6 +47,13 @@ You can choose algoritm from hashlib or specify user's hashlib-like algorithm.
 ```python
 lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
 ```
+
+### DirCache
+DirCache is a dict-like object that used pickle to store values in key-named files.
+It very simple cache variant and it can be changed to more progressive variant if need. 
+```python
+evalcache.DirCache(".evalcache")
+```  
 
 ## Contact
 mirmik(mirmikns@yandex.ru)

@@ -5,16 +5,8 @@ import types
 
 from evalcache.dircache import DirCache 
 
-version = "0.2.0" 
+version = "0.2.1" 
 diagnostic = False
-
-def enable_diagnostic():
-	"""Enable console output about cache operations
-
-	Deprecated!!!
-	"""
-	global diagnostic
-	diagnostic = True
 
 class Lazy:
 	"""Base library class. Decorator for callable lazifying.

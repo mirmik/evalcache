@@ -8,7 +8,7 @@ sys.path.insert(0, "..")
 import evalcache
 import hashlib
 
-evalcache.enable_diagnostic()
+evalcache.diagnostic = True
 
 lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"), algo = hashlib.sha256)
 
