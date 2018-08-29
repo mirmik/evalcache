@@ -43,7 +43,7 @@ load - get early stored value from cache.
 save - evaluation executed and value stored.  
 
 ### Hash algorithm  
-You can choose algoritm from hashlib or specify user's hashlib-like algorithm.
+You can choose algorithm from hashlib or specify user's hashlib-like algorithm.
 ```python
 lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
 ```

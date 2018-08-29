@@ -9,7 +9,7 @@ version = "0.2.1"
 diagnostic = False
 
 class Lazy:
-	"""Base library class. Decorator for callable lazifying.
+	"""Decorator for endpoint objects lazifying.
 
 	Arguments:
 	----------
@@ -22,7 +22,7 @@ class Lazy:
 		self.algo = algo
 
 	def __call__(self, func):
-		"""Construct lazy wrap for callable."""
+		"""Construct lazy wrap for callable or another type object."""
 		return LazyGeneric(self, func)
 
 class LazyObject:

@@ -2,6 +2,17 @@ import os
 import pickle
 
 class DirCache:
+	"""Standart dict-like object that store pairs key-value as files in target directory.
+
+	Arguments:
+	----------
+	dirpath - target directory path. If it isn't exists, we trying to create it. 
+
+	Exceptions:
+	-----------
+	IOException
+	"""
+
 	def __init__(self, dirpath):
 		self.dirpath = dirpath
 
