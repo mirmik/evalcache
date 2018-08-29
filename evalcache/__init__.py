@@ -22,7 +22,7 @@ class Lazy:
 
 	Arguments:
 	----------
-	cache -- dict-like object, which store and load evaluation's results (f.e. DirCache or dict)
+	cache -- dict-like object, which stores and loads evaluation's results (f.e. DirCache or dict)
 	algo -- hashing algorithm for keys making. (hashlib-like) 
 	"""
 
@@ -37,7 +37,7 @@ class Lazy:
 class LazyObject:
 	"""Lazytree element's interface.
 
-	A lazy object provides a rather abstract interface. We can use attribute getting or operators for
+	A lazy object provides a rather abstract interface. We can use attribute getting or operators to
 	generate another lazy objects.
 
 	The technical problem is that a lazy wrapper does not know the type of wraped object before unlazing.
@@ -71,15 +71,14 @@ class LazyObject:
 	def __ge__(self, oth): return LazyResult(self.__lazybase__, lambda x,y: x >= y, (self, oth))
 
 	def unlazy(self):
-		"""Get result of evaluation.
+		"""Get a result of evaluation.
 
 		See .unlazy function for details.
 		
 		Disclamer:
-		Technically, the calculated object can turn out to be a "unlazy" method. 
-		In this case it turns out that we have hidden such a method. But using the unlazy function is more 
-		convenient in the method format, so I decided to sacrifice this variant."""
-		
+		Technically, the evaluated object can define an "unlazy" method.
+		If so, we'll hide such the method. However since using the unlazy 
+		function is more convenient as the method, so this option was excluded."""		
 		ret = unlazy(self)
 		if hasattr(ret, "unlazy"):
 			print("WARNING: Shadow unlazy method.")
@@ -108,7 +107,8 @@ class LazyResult(LazyObject):
 class LazyGeneric(LazyObject):
 	"""Lazy function wraper.
 
-	End point of lazy tree. Special LazyObject type for wrap callables as function, methods, ctors, functors...
+	End point of lazy tree. Special LazyObject type to wrap 
+	such callables as function, methods, ctors, functors...
 	It constructed in Lazy.__call__.
 
 	Arguments:
@@ -128,7 +128,7 @@ class LazyGeneric(LazyObject):
 		self.__lazyhexhash__ = m.hexdigest()
 
 	def __get__(self, instance, cls):
-		"""With __get__method we can use lazy decorator on class's methods"""
+		"""With __get__ method we can use lazy decorator on class's methods"""
 		if instance is None:
 			return self
 		else:
@@ -137,19 +137,19 @@ class LazyGeneric(LazyObject):
 	def __repr__(self): return "<LazyGeneric(value:{})>".format(self.__lazyvalue__)
 
 def lazydo(obj):
-		"""Perform evaluation.
+	"""Perform evaluation.
 
-		We need expand all arguments and callable for support lazy trees."""
-		func = expand(obj.generic)
-		args = expand(obj.args)
-		kwargs = expand(obj.kwargs)
-		return func(*args, **kwargs)
+	We need expand all arguments and callable for support lazy trees."""
+	func = expand(obj.generic)
+	args = expand(obj.args)
+	kwargs = expand(obj.kwargs)
+	return func(*args, **kwargs)
 
 def unlazy(obj):
-	"""Get result of evaluation.
+	"""Get a result of evaluation.
 
-	This function trying find object in local memory (fget), then in cache (load).
-	If object wasn't stored early, perform evaluation and store result in cache and local memory. 		
+	This function searches for the result in local memory (fget), and after that in cache (load).
+	If object wasn't stored early, it performs evaluation and stores a result in cache and local memory (save).
 	"""
 	if (obj.__lazyvalue__ != None):
 		if diagnostic_enabled: print('fget', obj.__lazyhexhash__)
