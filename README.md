@@ -11,7 +11,9 @@ Since the library saves every computed object in the cache, including intermedia
 ## Detail
 
 ## Install
-```pip3 install evalcache```
+```
+pip3 install evalcache
+```
 
 ## Base syntax example
 ```
