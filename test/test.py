@@ -40,6 +40,9 @@ class A:
 
 create_A = lazy(A)
 
+def bar():
+	pass
+
 @lazy
 def foo(i):
 	return 3 + i
@@ -58,5 +61,17 @@ print(dct_result.unlazy())
 evalcache.print_tree(dct_result)
 
 b = A(77)
+
+b_wrap = lazy(b)
+
+print(b_wrap.left().unlazy())
+
 method_invoke_result = b.method(66)
 print("method_invoke_result", method_invoke_result.unlazy())
+
+class S:
+	pass
+
+s = S()
+S.bar = bar
+print(bar.__get__)

@@ -107,8 +107,8 @@ class LazyResult(LazyObject):
 class LazyGeneric(LazyObject):
 	"""Lazy function wraper.
 
-	End point of lazy tree. Special LazyObject type to wrap 
-	such callables as function, methods, ctors, functors...
+	End point of lazy tree. Special LazyObject type to wrap
+	function, methods, ctors, functors or another noncallable objects...
 	It constructed in Lazy.__call__.
 
 	Arguments:
@@ -117,12 +117,12 @@ class LazyGeneric(LazyObject):
 	func -- wrapped callable
 	"""
 
-	def __init__(self, lazifier, func):
+	def __init__(self, lazifier, wrapped_object):
 		LazyObject.__init__(self, lazifier)
-		self.__lazyvalue__ = func
+		self.__lazyvalue__ = wrapped_object
 		
 		m = self.__lazybase__.algo()
-		updatehash(m, func)
+		updatehash(m, wrapped_object)
 		
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
