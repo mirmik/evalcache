@@ -6,7 +6,6 @@ import types
 from evalcache.dircache import DirCache 
 
 version = "0.2.1" 
-diagnostic = False
 
 class Lazy:
 	"""Decorator for endpoint objects lazifying.
@@ -15,11 +14,15 @@ class Lazy:
 	----------
 	cache -- dict-like object, which stores and loads evaluation's results (f.e. DirCache or dict)
 	algo -- hashing algorithm for keys making. (hashlib-like) 
+	encache -- default state of enabling caching operations
+	diag -- diagnostic output
 	"""
 
-	def __init__(self, cache, algo = hashlib.sha256):
+	def __init__(self, cache, algo = hashlib.sha256, encache = True, diag = False):
 		self.cache = cache
 		self.algo = algo
+		self.encache = encache
+		self.diag = diag
 
 	def __call__(self, func):
 		"""Construct lazy wrap for callable or another type object."""
@@ -40,12 +43,13 @@ class LazyObject:
 	lazifier -- parental lazy decorator
 	"""
 
-	def __init__(self, lazifier): 
+	def __init__(self, lazifier, encache = True): 
 		self.__lazybase__ = lazifier
+		self.__encache__ = encache
 
 	def __call__(self, *args, **kwargs): return LazyResult(self.__lazybase__, self, args, kwargs)
 	
-	def __getattr__(self, item): return LazyResult(self.__lazybase__, getattr, (self, item))
+	def __getattr__(self, item): return LazyResult(self.__lazybase__, getattr, (self, item), encache = False)
 	def __getitem__(self, item): return LazyResult(self.__lazybase__, lambda x, i: x[i], (self, item))
 
 	def __add__(self, oth): return LazyResult(self.__lazybase__, lambda x,y: x + y, (self, oth))
@@ -88,8 +92,8 @@ class LazyResult(LazyObject):
 	kwargs -- keyword arguments used for object evaluation
 	"""
 
-	def __init__(self, lazifier, generic, args = (), kwargs = {}):
-		LazyObject.__init__(self, lazifier)	
+	def __init__(self, lazifier, generic, args = (), kwargs = {}, encache = True):
+		LazyObject.__init__(self, lazifier, encache)	
 		self.generic = generic
 		self.args = args
 		self.kwargs = kwargs
@@ -119,7 +123,7 @@ class LazyGeneric(LazyObject):
 	"""
 
 	def __init__(self, lazifier, wrapped_object):
-		LazyObject.__init__(self, lazifier)
+		LazyObject.__init__(self, lazifier, encache = False)
 		self.__lazyvalue__ = wrapped_object
 		
 		m = self.__lazybase__.algo()
@@ -144,7 +148,10 @@ def lazydo(obj):
 	func = expand(obj.generic)
 	args = expand(obj.args)
 	kwargs = expand(obj.kwargs)
-	return func(*args, **kwargs)
+
+	##We showld expand result becouse it can be LazyObject
+	result = expand(func(*args, **kwargs)) 
+	return result
 
 def unlazy(obj):
 	"""Get a result of evaluation.
@@ -152,23 +159,20 @@ def unlazy(obj):
 	This function searches for the result in local memory (fget), and after that in cache (load).
 	If object wasn't stored early, it performs evaluation and stores a result in cache and local memory (save).
 	"""
+	diagnostic = obj.__lazybase__.diag
 	if (obj.__lazyvalue__ != None):
-		if diagnostic: 
-			if isinstance(obj, LazyGeneric):
-				print('endp', obj.__lazyhexhash__)				
-			else: 
-				print('fget', obj.__lazyhexhash__)
-		return obj.__lazyvalue__
-
-	if obj.__lazyhexhash__ in obj.__lazybase__.cache:
+		if diagnostic: print('endp' if isinstance(obj, LazyGeneric) else 'fget', obj.__lazyhexhash__)				
+	elif obj.__lazyhexhash__ in obj.__lazybase__.cache:
 		if diagnostic: print('load', obj.__lazyhexhash__)
 		obj.__lazyvalue__ = obj.__lazybase__.cache[obj.__lazyhexhash__]
-		return obj.__lazyvalue__
 	else:
 		obj.__lazyvalue__ = lazydo(obj)		
-		if diagnostic: print('save', obj.__lazyhexhash__)
-		obj.__lazybase__.cache[obj.__lazyhexhash__] = obj.__lazyvalue__
-		return obj.__lazyvalue__
+		if obj.__encache__:
+			if diagnostic: print('save', obj.__lazyhexhash__)
+			obj.__lazybase__.cache[obj.__lazyhexhash__] = obj.__lazyvalue__
+		else:
+			if diagnostic: print('eval', obj.__lazyhexhash__)
+	return obj.__lazyvalue__					
 
 def expand(arg):
 	"""Apply unlazy operation for argument or for all argument's items if need."""
