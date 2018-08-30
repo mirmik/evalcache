@@ -43,9 +43,9 @@ class LazyObject:
 	lazifier -- parental lazy decorator
 	"""
 
-	def __init__(self, lazifier, encache = True): 
+	def __init__(self, lazifier, encache = None): 
 		self.__lazybase__ = lazifier
-		self.__encache__ = encache
+		self.__encache__ = encache if encache != None else self.__lazybase__.encache
 
 	def __call__(self, *args, **kwargs): return LazyResult(self.__lazybase__, self, args, kwargs)
 	
@@ -92,7 +92,7 @@ class LazyResult(LazyObject):
 	kwargs -- keyword arguments used for object evaluation
 	"""
 
-	def __init__(self, lazifier, generic, args = (), kwargs = {}, encache = True):
+	def __init__(self, lazifier, generic, args = (), kwargs = {}, encache = None):
 		LazyObject.__init__(self, lazifier, encache)	
 		self.generic = generic
 		self.args = args
