@@ -107,12 +107,15 @@ class LazyObject:
 	def __rxor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (oth, self))
 
 	#Compare operators:
-	def __eq__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x == y, (self, oth))
-	def __ne__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x != y, (self, oth))
-	def __lt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <  y, (self, oth))
-	def __le__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <= y, (self, oth))
-	def __gt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >  y, (self, oth))
-	def __ge__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >= y, (self, oth))
+	#Now is not supported as lazy operations
+	def __eq__(self, oth): return self.__lazyhash__ == oth.__lazyhash__ 
+	def __ne__(self, oth): return self.__lazyhash__ != oth.__lazyhash__ 
+	#def __eq__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x == y, (self, oth))
+	#def __ne__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x != y, (self, oth))
+	#def __lt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <  y, (self, oth))
+	#def __le__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <= y, (self, oth))
+	#def __gt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >  y, (self, oth))
+	#def __ge__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >= y, (self, oth))
 
 	#Unary operators:
 	def __pos__(self): return LazyObject(self.__lazybase__, lambda x: +x, (self))
@@ -128,7 +131,7 @@ class LazyObject:
 	#This methods group are not supported
 
 	#Container methods:
-	def __len__(self, item): return LazyObject(self.__lazybase__, lambda x: len(x), (self))
+	def __len__(self): return LazyObject(self.__lazybase__, lambda x: len(x), (self))
 	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item))
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
