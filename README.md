@@ -34,7 +34,7 @@ You should instance "evalcache.Lazy" for start work. "Lazy" get "cache" as param
 ### Diagnostic  
 We can visualize cache operations:
 ```python
-evalcache.diagnostic = True
+lazy = evalcache.Lazy(cache = cache, diag = True)
 ```
 in this mode, when you use unlazy, you will see console output:  
 endp - get endpoint object.  
@@ -52,7 +52,7 @@ lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
 DirCache is a dict-like object that used pickle to store values in key-named files.
 It very simple cache and it can be changed to more progressive option if need. 
 ```python
-evalcache.DirCache(".evalcache")
+lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
 ```  
 
 ## Contact

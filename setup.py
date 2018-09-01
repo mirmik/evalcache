@@ -9,10 +9,10 @@ import evalcache
 setup(
 	name = 'evalcache',
 	packages = ['evalcache'],
-	version = evalcache.version,
+	version = evalcache.__version__,
 	license='MIT',
 	description = 'Disk cache for evaluation results',
-	author = 'Sorokin Nikolay',
+	author = 'mirmik',
 	author_email = 'mirmikns@yandex.ru',
 	url = 'https://github.com/mirmik/evalcache',
 	keywords = ['testing', 'caching'],
