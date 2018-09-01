@@ -5,11 +5,11 @@ import numpy as np
 import math
 import evalcache
 
-evalcache.enable_diagnostic()
-lazy = evalcache.Lazy(evalcache.DirCache(".evalcache"))
+lazy = evalcache.Lazy(evalcache.DirCache(".evalcache"), diag = True)
 
 pj1, psi, y0, gamma, gr= symbols("pj1 psi y0 gamma gr")
 
+###################### Construct sympy expression #####################
 F = 2500
 xright = 625
 re = 625
@@ -43,14 +43,23 @@ p1 = (
 	(gamma * xmpsi / gmpsi * xp2) * (1-b) 
 	+ (aepsi * xp2 * sin(gamma) + bepsi * yp2 * (1-cos(gamma)))*b + pj1
 )
+#######################################################################
+
+#First lazy node. Simplify is long operation.
+#Sympy has very good representations for expressions 
+print("Expression:", repr(p1))
+print()
 
 p1 = lazy(simplify)(p1)
 
+#########################################################################################
+## Really don't need to lazify fast operations
 Na = 200
 angles = [t * 2 * math.pi / 360 / Na * 106 for t in range(0,Na+1)]
 
 N = int(200)
 a = (np.arange(0,N+1) - N/2) * 90/360*2*math.pi/N
+#########################################################################################
 
 @lazy
 def genarray(angles, a, p1):
@@ -65,14 +74,7 @@ def genarray(angles, a, p1):
 		points.append(arr)
 	return points
 
-arr = genarray(angles, a, p1)
-arr.unlazy()
+#Second lazy node.
+arr = genarray(angles, a, p1).unlazy()
 
-#print(points)
-
-#lazy_solve = lazy(sympy.solve)
-#ret = sympy.solve((eq1,eq2), (x,y))
-
-#print(ret)
-
-#print(evalcache.unlazy(ret))
+print("\nResult list:", arr.__class__, len(arr))

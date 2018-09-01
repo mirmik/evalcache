@@ -1,3 +1,5 @@
+#coding: utf-8
+
 import os
 import pickle
 
@@ -34,4 +36,3 @@ class DirCache:
 	def __getitem__(self, key):
 		with open(os.path.join(self.dirpath, key), "rb") as fl:
 			return pickle.load(fl)
-			
