@@ -6,16 +6,19 @@ import os
 
 import evalcache
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
 	name = 'evalcache',
-	packages = ['evalcache'],
 	version = evalcache.__version__,
-	license='MIT',
-	description = 'Disk cache for evaluation results',
+	packages = ['evalcache'],
 	author = 'mirmik',
 	author_email = 'mirmikns@yandex.ru',
+	description = 'Lazy computing tree cache library',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+	license='MIT',
 	url = 'https://github.com/mirmik/evalcache',
-	keywords = ['testing', 'caching'],
-	classifiers = [],
-	scripts = [],
+	keywords = ['caching', 'lazy'],
 )
