@@ -20,5 +20,10 @@ lazy_1.unlazy()
 lazy_1.unlazy()
 lazy_1.unlazy()
 
+class A():
+	def foo(self):
+		return lazy(lambda: 4)
+
+A().foo()().unlazy()
 
 assert lazy_1.unlazy() != lazy_2.unlazy()

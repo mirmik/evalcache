@@ -1,5 +1,7 @@
 #coding: utf-8
 
+from __future__ import print_function
+
 import sys
 import types
 import hashlib
@@ -59,7 +61,7 @@ class LazyObject:
 		self.__lazyvalue__ = value
 		
 		m = self.__lazybase__.algo()		
-		if generic: updatehash(m, generic)
+		if generic is not None: updatehash(m, generic)
 		if len(args): updatehash(m, args)
 		if len(kwargs): updatehash(m, kwargs)
 		if value is not None: updatehash(m, value)
@@ -69,15 +71,42 @@ class LazyObject:
 
 	def __call__(self, *args, **kwargs): return LazyObject(self.__lazybase__, self, args, kwargs)
 	
+	#Attribute control
 	def __getattr__(self, item): return LazyObject(self.__lazybase__, getattr, (self, item), encache = False, decache = False)
-	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item))
-
+	
+	#Arithmetic operators:
 	def __add__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x + y, (self, oth))
 	def __sub__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x - y, (self, oth))
-	def __xor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (self, oth))
 	def __mul__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x * y, (self, oth))
+	def __floordiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x // y, (self, oth))
 	def __div__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (self, oth))
+	def __truediv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (self, oth))
+	def __mod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x % y, (self, oth))
+	def __divmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: divmod(x, y), (self, oth))
+	def __pow__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ** y, (self, oth))
+	def __lshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x << y, (self, oth))
+	def __rshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >> y, (self, oth))
+	def __and__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x & y, (self, oth))
+	def __or__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x | y, (self, oth))
+	def __xor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (self, oth))
 
+	#Reverse arithmetic operators:
+	def __radd__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x + y, (oth, self))
+	def __rsub__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x - y, (oth, self))
+	def __rmul__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x * y, (oth, self))
+	def __rfloordiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x // y, (oth, self))
+	def __rdiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (oth, self))
+	def __rtruediv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (oth, self))
+	def __rmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x % y, (oth, self))
+	def __rdivmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: divmod(x, y), (oth, self))
+	def __rpow__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x**y, (oth, self))
+	def __rlshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x << y, (oth, self))
+	def __rrshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >> y, (oth, self))
+	def __rand__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x & y, (oth, self))
+	def __ror__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x | y, (oth, self))
+	def __rxor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (oth, self))
+
+	#Compare operators:
 	def __eq__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x == y, (self, oth))
 	def __ne__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x != y, (self, oth))
 	def __lt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <  y, (self, oth))
@@ -85,15 +114,55 @@ class LazyObject:
 	def __gt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >  y, (self, oth))
 	def __ge__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >= y, (self, oth))
 
+	#Unary operators:
+	def __pos__(self): return LazyObject(self.__lazybase__, lambda x: +x, (self))
+	def __neg__(self): return LazyObject(self.__lazybase__, lambda x: -x, (self))
+	def __abs__(self): return LazyObject(self.__lazybase__, lambda x: abs(x), (self))
+	def __invert__(self): return LazyObject(self.__lazybase__, lambda x: ~x, (self))
+	def __round__(self, n): return LazyObject(self.__lazybase__, lambda x, y: round(x, y), (self, n))
+	def __floor__(self): return LazyObject(self.__lazybase__, lambda x: math.floor(x), (self))
+	def __ceil__(self): return LazyObject(self.__lazybase__, lambda x: math.ceil(x), (self))
+	def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+
+	#Augmented assignment
+	#This methods group are not supported
+
+	#Container methods:
+	def __len__(self, item): return LazyObject(self.__lazybase__, lambda x: len(x), (self))
+	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item))
+	#def __setitem__(self, key, value) --- Not supported
+	#def __delitem__(self, key)--- Not supported
+	def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
+	def __reversed__(self): return LazyObject(self.__lazybase__, lambda x: reversed(x), (self))
+	def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
+	#def __missing__(self, key): --- ???
+    
+	#Type conversion:
+	def __nonzero__(self): return LazyObject(self.__lazybase__, lambda x: bool(x), (self))
+	def __int__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self))
+	def __long__(self): return LazyObject(self.__lazybase__, lambda x: long(x), (self))
+	def __float__(self): return LazyObject(self.__lazybase__, lambda x: float(x), (self))
+	def __complex__(self): return LazyObject(self.__lazybase__, lambda x: complex(x), (self))
+	def __oct__(self): return LazyObject(self.__lazybase__, lambda x: oct(x), (self))
+	def __hex__(self): return LazyObject(self.__lazybase__, lambda x: hex(x), (self))
+	#def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
+	def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+	def __coerce__(self, oth): return None
+
+	#Type presentation
+	def __hash__(self): return int(binascii.hexlify(self.__lazyhash__), 16)
+	def __str__(self): return self.__lazyhexhash__
+	def __repr__(self): return self.__lazyhexhash__
+
+	#Descriptor:
+	#def __set__ --- Not supported
 	def __get__(self, instance, cls):
 		"""With __get__ method we can use lazy decorator on class's methods"""
 		if (instance is not None) and isinstance(self.__lazyvalue__, types.FunctionType):
 			return types.MethodType(self, instance)
 		else:
 			return self
-
-	def __hash__(self):
-		return int(binascii.hexlify(self.__lazyhash__), 16)
+	def __delete__(self): pass
 
 	def unlazy(self):
 		"""Get a result of evaluation.
@@ -130,7 +199,9 @@ def unlazy(obj):
 	If object has disabled __decache__ loading prevented.
 	"""
 	diagnostic = obj.__lazybase__.diag
-	diag = lambda t: print(t, obj.__lazyhexhash__) if diagnostic else lambda t : None
+	def diag(t): 
+		if diagnostic: 
+			print(t, obj.__lazyhexhash__) 
 
 	# If local context was setted we can return object imediatly
 	if (obj.__lazyvalue__ is not None):
@@ -160,7 +231,8 @@ def unlazy(obj):
 			# without storing.
 			diag('eval')
 
-	return obj.__lazyvalue__						
+	# And, anyway, here our object in obj.__lazyvalue__
+	return obj.__lazyvalue__
 
 def expand(arg):
 	"""Apply unlazy operation for argument or for all argument's items if need.
@@ -185,11 +257,11 @@ def updatehash_LazyObject(m, obj):
 	m.update(obj.__lazyhash__)
 
 def updatehash_function(m, obj):
-	if obj.__qualname__ == "<lambda>":
-		print("WARNING: evalcache cann't work with global lambdas correctly")
-	if hasattr(obj, "__qualname__"): 
+	if hasattr(obj, "__qualname__"):
+		if obj.__qualname__ == "<lambda>":
+			print("WARNING: evalcache cann't work with global lambdas correctly")
 		m.update(obj.__qualname__.encode("utf-8"))
-	elif hasattr(obj, "__name__") : 
+	elif hasattr(obj, "__name__"): 
 		m.update(obj.__name__.encode("utf-8"))
 	if hasattr(obj, "__module__") and obj.__module__: 
 		m.update(obj.__module__.encode("utf-8"))
@@ -225,6 +297,8 @@ def updatehash(m, obj):
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				.format(obj.__class__))
 		m.update(repr(obj).encode("utf-8"))
+
+
 
 __tree_tab = "    "
 def print_tree(obj, t = 0):

@@ -24,3 +24,6 @@ print(function_result.unlazy()) #3
 
 operator_add_result = lazy(1) + lazy(2) + lazy(3)
 print(operator_add_result.unlazy()) #6
+
+print((b - 2).unlazy())
+print((2 - b).unlazy())
