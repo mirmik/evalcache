@@ -59,7 +59,7 @@ class LazyObject:
 		self.args = args
 		self.kwargs = kwargs
 		self.__lazyvalue__ = value
-		
+
 		m = self.__lazybase__.algo()		
 		if generic is not None: updatehash(m, generic)
 		if len(args): updatehash(m, args)
@@ -69,6 +69,7 @@ class LazyObject:
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
 
+	#Callable
 	def __call__(self, *args, **kwargs): return LazyObject(self.__lazybase__, self, args, kwargs)
 	
 	#Attribute control
@@ -107,7 +108,7 @@ class LazyObject:
 	def __rxor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (oth, self))
 
 	#Compare operators:
-	#Now is not supported as lazy operations
+	#Is not supported as lazy operations
 	def __eq__(self, oth): return self.__lazyhash__ == oth.__lazyhash__ 
 	def __ne__(self, oth): return self.__lazyhash__ != oth.__lazyhash__ 
 	#def __eq__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x == y, (self, oth))
@@ -131,7 +132,7 @@ class LazyObject:
 	#This methods group are not supported
 
 	#Container methods:
-	def __len__(self): return LazyObject(self.__lazybase__, lambda x: len(x), (self))
+	#def __len__(self): print("LEN"); exit(0); return LazyObject(self.__lazybase__, lambda x: len(x), (self))
 	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item))
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
@@ -141,15 +142,16 @@ class LazyObject:
 	#def __missing__(self, key): --- ???
     
 	#Type conversion:
-	def __nonzero__(self): return LazyObject(self.__lazybase__, lambda x: bool(x), (self))
-	def __int__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self))
-	def __long__(self): return LazyObject(self.__lazybase__, lambda x: long(x), (self))
-	def __float__(self): return LazyObject(self.__lazybase__, lambda x: float(x), (self))
-	def __complex__(self): return LazyObject(self.__lazybase__, lambda x: complex(x), (self))
-	def __oct__(self): return LazyObject(self.__lazybase__, lambda x: oct(x), (self))
-	def __hex__(self): return LazyObject(self.__lazybase__, lambda x: hex(x), (self))
+	#TODO: need undestand, what it should...
+	#def __nonzero__(self): return LazyObject(self.__lazybase__, lambda x: bool(x), (self))
+	#def __int__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self))
+	#def __long__(self): return LazyObject(self.__lazybase__, lambda x: long(x), (self))
+	#def __float__(self): return LazyObject(self.__lazybase__, lambda x: float(x), (self))
+	#def __complex__(self): return LazyObject(self.__lazybase__, lambda x: complex(x), (self))
+	#def __oct__(self): return LazyObject(self.__lazybase__, lambda x: oct(x), (self))
+	#def __hex__(self): return LazyObject(self.__lazybase__, lambda x: hex(x), (self))
 	#def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
-	def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+	#def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
 	def __coerce__(self, oth): return None
 
 	#Type presentation
