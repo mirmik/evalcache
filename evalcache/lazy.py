@@ -157,7 +157,7 @@ class LazyObject:
 	#Type presentation
 	def __hash__(self): return int(binascii.hexlify(self.__lazyhash__), 16)
 	def __str__(self): return str(unlazy(self))
-	def __repr__(self): return repr(unlazy(self))
+	#def __repr__(self): repr(unlazy(self))
 
 	#Descriptor:
 	#def __set__ --- Not supported
