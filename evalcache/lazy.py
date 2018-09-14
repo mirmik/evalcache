@@ -143,13 +143,14 @@ class LazyObject:
     
 	#Type conversion:
 	#TODO: need undestand, what it should...
-	#def __nonzero__(self): return LazyObject(self.__lazybase__, lambda x: bool(x), (self))
-	#def __int__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self))
-	#def __long__(self): return LazyObject(self.__lazybase__, lambda x: long(x), (self))
-	#def __float__(self): return LazyObject(self.__lazybase__, lambda x: float(x), (self))
-	#def __complex__(self): return LazyObject(self.__lazybase__, lambda x: complex(x), (self))
-	#def __oct__(self): return LazyObject(self.__lazybase__, lambda x: oct(x), (self))
-	#def __hex__(self): return LazyObject(self.__lazybase__, lambda x: hex(x), (self))
+	def __nonzero__(self): return bool(unlazy(self))
+	def __bool__(self): return bool(unlazy(self))
+	def __int__(self): return int(unlazy(self))
+	def __long__(self): return long(unlazy(self))
+	def __float__(self): return float(unlazy(self))
+	def __complex__(self): return complex(unlazy(self))
+	def __oct__(self): return oct(unlazy(self))
+	def __hex__(self): return hex(unlazy(self))
 	#def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
 	#def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
 	def __coerce__(self, oth): return None

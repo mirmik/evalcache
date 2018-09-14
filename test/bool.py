@@ -4,9 +4,15 @@ import sys
 sys.path.insert(0, "..")
 
 import evalcache
-lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
+lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"), diag = True)
 
 a = lazy(0)
 
-if a:
+print(a)
+
+if bool(a):
 	print(True)
+else:
+	print(False)
+
+print(int(a))
