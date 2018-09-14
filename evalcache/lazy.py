@@ -143,8 +143,8 @@ class LazyObject:
     
 	#Type conversion:
 	#TODO: need undestand, what it should...
-	def __nonzero__(self): return bool(unlazy(self))
-	def __bool__(self): return bool(unlazy(self))
+	#def __nonzero__(self): return bool(unlazy(self))
+	#def __bool__(self): return bool(unlazy(self))
 	#def __int__(self): return int(unlazy(self))
 	#def __long__(self): return long(unlazy(self))
 	#def __float__(self): return float(unlazy(self))
