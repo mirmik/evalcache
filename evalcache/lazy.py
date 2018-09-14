@@ -145,12 +145,12 @@ class LazyObject:
 	#TODO: need undestand, what it should...
 	def __nonzero__(self): return bool(unlazy(self))
 	def __bool__(self): return bool(unlazy(self))
-	def __int__(self): return int(unlazy(self))
-	def __long__(self): return long(unlazy(self))
-	def __float__(self): return float(unlazy(self))
-	def __complex__(self): return complex(unlazy(self))
-	def __oct__(self): return oct(unlazy(self))
-	def __hex__(self): return hex(unlazy(self))
+	#def __int__(self): return int(unlazy(self))
+	#def __long__(self): return long(unlazy(self))
+	#def __float__(self): return float(unlazy(self))
+	#def __complex__(self): return complex(unlazy(self))
+	#def __oct__(self): return oct(unlazy(self))
+	#def __hex__(self): return hex(unlazy(self))
 	#def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
 	#def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
 	def __coerce__(self, oth): return None
@@ -158,7 +158,7 @@ class LazyObject:
 	#Type presentation
 	def __hash__(self): return int(binascii.hexlify(self.__lazyhash__), 16)
 	def __str__(self): return str(unlazy(self))
-	#def __repr__(self): repr(unlazy(self))
+	#def __repr__(self): repr(unlazy(self)) # Standart repr for best debugging
 
 	#Descriptor:
 	#def __set__ --- Not supported

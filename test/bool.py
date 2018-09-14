@@ -15,4 +15,4 @@ if bool(a):
 else:
 	print(False)
 
-print(int(a))
+print(int(a + 26))
