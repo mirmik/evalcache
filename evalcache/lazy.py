@@ -133,12 +133,12 @@ class LazyObject:
 
 	#Container methods:
 	#def __len__(self): print("LEN"); exit(0); return LazyObject(self.__lazybase__, lambda x: len(x), (self))
-	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item))
+	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item), encache = False, decache = False)
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
-	def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
+	#def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
 	def __reversed__(self): return LazyObject(self.__lazybase__, lambda x: reversed(x), (self))
-	def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
+	#def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
 	#def __missing__(self, key): --- ???
     
 	#Type conversion:
