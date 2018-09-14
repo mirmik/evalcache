@@ -111,12 +111,12 @@ class LazyObject:
 	#Is not supported as lazy operations
 	def __eq__(self, oth): return self.__lazyhash__ == oth.__lazyhash__ 
 	def __ne__(self, oth): return self.__lazyhash__ != oth.__lazyhash__ 
-	#def __eq__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x == y, (self, oth))
-	#def __ne__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x != y, (self, oth))
-	#def __lt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <  y, (self, oth))
-	#def __le__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x <= y, (self, oth))
-	#def __gt__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >  y, (self, oth))
-	#def __ge__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >= y, (self, oth))
+	#def __eq__(self, oth): 
+	#def __ne__(self, oth): 
+	#def __lt__(self, oth):
+	#def __le__(self, oth): 
+	#def __gt__(self, oth):
+	#def __ge__(self, oth): 
 
 	#Unary operators:
 	def __pos__(self): return LazyObject(self.__lazybase__, lambda x: +x, (self))
