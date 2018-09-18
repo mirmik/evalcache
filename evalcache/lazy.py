@@ -260,6 +260,9 @@ def updatehash_dict(m, obj):
 		updatehash(m, k)
 		updatehash(m, v)
 
+def updatehash_str(m, obj):
+	m.update(obj.encode("utf-8"))
+
 def updatehash_LazyObject(m, obj):
 	m.update(obj.__lazyhash__)
 
@@ -267,16 +270,17 @@ def updatehash_function(m, obj):
 	if hasattr(obj, "__qualname__"):
 		if obj.__qualname__ == "<lambda>":
 			print("WARNING: evalcache cann't work with global lambdas correctly")
-		m.update(obj.__qualname__.encode("utf-8"))
+		updatehash_str(m, obj.__qualname__)
 	elif hasattr(obj, "__name__"): 
-		m.update(obj.__name__.encode("utf-8"))
+		updatehash_str(m, obj.__name__)
 	if hasattr(obj, "__module__") and obj.__module__: 
-		m.update(obj.__module__.encode("utf-8"))
-		m.update(sys.modules[obj.__module__].__file__.encode("utf-8"))
+		updatehash_str(m, obj.__module__)
+		updatehash_str(m, sys.modules[obj.__module__].__file__)
 
 ## Table of hash functions for special types.
 hashfuncs = {
 	LazyObject: updatehash_LazyObject,
+	str: updatehash_str,
 	tuple: updatehash_list,
 	list: updatehash_list,
 	dict: updatehash_dict,
@@ -303,7 +307,7 @@ def updatehash(m, obj):
 		if obj.__class__.__repr__ is object.__repr__:
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				.format(obj.__class__))
-		m.update(repr(obj).encode("utf-8"))
+		updatehash_str(m, repr(obj))
 
 
 
