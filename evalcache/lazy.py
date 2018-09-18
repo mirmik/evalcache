@@ -6,6 +6,7 @@ import sys
 import types
 import hashlib
 import binascii
+import operator
 
 class Lazy:
 	"""Decorator for endpoint objects lazifying.
@@ -76,36 +77,36 @@ class LazyObject:
 	def __getattr__(self, item): return LazyObject(self.__lazybase__, getattr, (self, item), encache = False, decache = False)
 	
 	#Arithmetic operators:
-	def __add__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x + y, (self, oth))
-	def __sub__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x - y, (self, oth))
-	def __mul__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x * y, (self, oth))
-	def __floordiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x // y, (self, oth))
-	def __div__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (self, oth))
-	def __truediv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (self, oth))
-	def __mod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x % y, (self, oth))
-	def __divmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: divmod(x, y), (self, oth))
-	def __pow__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ** y, (self, oth))
-	def __lshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x << y, (self, oth))
-	def __rshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >> y, (self, oth))
-	def __and__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x & y, (self, oth))
-	def __or__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x | y, (self, oth))
-	def __xor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (self, oth))
+	def __add__(self, oth): 		return LazyObject(self.__lazybase__, operator.__add__, 		(self, oth))
+	def __sub__(self, oth): 		return LazyObject(self.__lazybase__, operator.__sub__, 		(self, oth))
+	def __mul__(self, oth): 		return LazyObject(self.__lazybase__, operator.__mul__, 		(self, oth))
+	def __floordiv__(self, oth): 	return LazyObject(self.__lazybase__, operator.__floordiv__,	(self, oth))
+	def __div__(self, oth): 		return LazyObject(self.__lazybase__, operator.__div__, 		(self, oth))
+	def __truediv__(self, oth): 	return LazyObject(self.__lazybase__, operator.__truediv__, 	(self, oth))
+	def __mod__(self, oth): 		return LazyObject(self.__lazybase__, operator.__mod__, 		(self, oth))
+	def __divmod__(self, oth): 		return LazyObject(self.__lazybase__, divmod, 				(self, oth))
+	def __pow__(self, oth): 		return LazyObject(self.__lazybase__, operator.__pow__, 		(self, oth))
+	def __lshift__(self, oth): 		return LazyObject(self.__lazybase__, operator.__lshift__, 	(self, oth))
+	def __rshift__(self, oth): 		return LazyObject(self.__lazybase__, operator.__rshift__, 	(self, oth))
+	def __and__(self, oth): 		return LazyObject(self.__lazybase__, operator.__and__, 		(self, oth))
+	def __or__(self, oth): 			return LazyObject(self.__lazybase__, operator.__or__, 		(self, oth))
+	def __xor__(self, oth): 		return LazyObject(self.__lazybase__, operator.__xor__, 		(self, oth))
 
 	#Reverse arithmetic operators:
-	def __radd__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x + y, (oth, self))
-	def __rsub__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x - y, (oth, self))
-	def __rmul__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x * y, (oth, self))
-	def __rfloordiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x // y, (oth, self))
-	def __rdiv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (oth, self))
-	def __rtruediv__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x / y, (oth, self))
-	def __rmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x % y, (oth, self))
-	def __rdivmod__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: divmod(x, y), (oth, self))
-	def __rpow__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x**y, (oth, self))
-	def __rlshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x << y, (oth, self))
-	def __rrshift__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x >> y, (oth, self))
-	def __rand__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x & y, (oth, self))
-	def __ror__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x | y, (oth, self))
-	def __rxor__(self, oth): return LazyObject(self.__lazybase__, lambda x,y: x ^ y, (oth, self))
+	def __radd__(self, oth): 		return LazyObject(self.__lazybase__, operator.__add__, 		(oth, self))
+	def __rsub__(self, oth): 		return LazyObject(self.__lazybase__, operator.__sub__, 		(oth, self))
+	def __rmul__(self, oth): 		return LazyObject(self.__lazybase__, operator.__mul__, 		(oth, self))
+	def __rfloordiv__(self, oth): 	return LazyObject(self.__lazybase__, operator.__floordiv__, (oth, self))
+	def __rdiv__(self, oth): 		return LazyObject(self.__lazybase__, operator.__div__, 		(oth, self))
+	def __rtruediv__(self, oth): 	return LazyObject(self.__lazybase__, operator.__truediv__, 	(oth, self))
+	def __rmod__(self, oth): 		return LazyObject(self.__lazybase__, operator.__mod__, 		(oth, self))
+	def __rdivmod__(self, oth): 	return LazyObject(self.__lazybase__, divmod, 				(oth, self))
+	def __rpow__(self, oth): 		return LazyObject(self.__lazybase__, operator.__pow__, 		(oth, self))
+	def __rlshift__(self, oth): 	return LazyObject(self.__lazybase__, operator.__lshift__, 	(oth, self))
+	def __rrshift__(self, oth): 	return LazyObject(self.__lazybase__, operator.__rshift__, 	(oth, self))
+	def __rand__(self, oth): 		return LazyObject(self.__lazybase__, operator.__and__, 		(oth, self))
+	def __ror__(self, oth): 		return LazyObject(self.__lazybase__, operator.__or__, 		(oth, self))
+	def __rxor__(self, oth): 		return LazyObject(self.__lazybase__, operator.__xor__, 		(oth, self))
 
 	#Compare operators:
 	#Is not supported as lazy operations
@@ -119,25 +120,25 @@ class LazyObject:
 	#def __ge__(self, oth): 
 
 	#Unary operators:
-	def __pos__(self): return LazyObject(self.__lazybase__, lambda x: +x, (self))
-	def __neg__(self): return LazyObject(self.__lazybase__, lambda x: -x, (self))
-	def __abs__(self): return LazyObject(self.__lazybase__, lambda x: abs(x), (self))
-	def __invert__(self): return LazyObject(self.__lazybase__, lambda x: ~x, (self))
-	def __round__(self, n): return LazyObject(self.__lazybase__, lambda x, y: round(x, y), (self, n))
-	def __floor__(self): return LazyObject(self.__lazybase__, lambda x: math.floor(x), (self))
-	def __ceil__(self): return LazyObject(self.__lazybase__, lambda x: math.ceil(x), (self))
-	def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+	def __pos__(self): 		return LazyObject(self.__lazybase__, operator.__pos__, 		(self))
+	def __neg__(self): 		return LazyObject(self.__lazybase__, operator.__neg__, 		(self))
+	def __abs__(self): 		return LazyObject(self.__lazybase__, operator.__abs__, 		(self))
+	def __invert__(self): 	return LazyObject(self.__lazybase__, operator.__invert__, 	(self))
+	def __round__(self, n): return LazyObject(self.__lazybase__, operator.__round__, 	(self, n))
+	def __floor__(self): 	return LazyObject(self.__lazybase__, operator.__floor__, 	(self))
+	def __ceil__(self): 	return LazyObject(self.__lazybase__, operator.__ceil__, 	(self))
+	def __trunc__(self): 	return LazyObject(self.__lazybase__, operator.__trunc__, 	(self))
 
 	#Augmented assignment
 	#This methods group are not supported
 
 	#Container methods:
 	#def __len__(self): print("LEN"); exit(0); return LazyObject(self.__lazybase__, lambda x: len(x), (self))
-	def __getitem__(self, item): return LazyObject(self.__lazybase__, lambda x, i: x[i], (self, item), encache = False, decache = False)
+	def __getitem__(self, item): return LazyObject(self.__lazybase__, operator.__getitem__, (self, item), encache = False, decache = False)
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
 	#def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
-	def __reversed__(self): return LazyObject(self.__lazybase__, lambda x: reversed(x), (self))
+	def __reversed__(self): return LazyObject(self.__lazybase__, reversed, (self))
 	#def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
 	#def __missing__(self, key): --- ???
     
@@ -157,7 +158,7 @@ class LazyObject:
 
 	#Type presentation
 	def __hash__(self): return int(binascii.hexlify(self.__lazyhash__), 16)
-	def __str__(self): return str(unlazy(self))
+	def __str__(self): return str(unlazy(self))	#Impicit unlazy for print compat.
 	#def __repr__(self): repr(unlazy(self)) # Standart repr for best debugging
 
 	#Descriptor:

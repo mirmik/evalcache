@@ -27,3 +27,11 @@ print(operator_add_result.unlazy()) #6
 
 print((b - 2).unlazy())
 print((2 - b).unlazy())
+
+
+
+print((a + b).unlazy())
+print((a - b).unlazy())
+print((a * b).unlazy())
+print((a / b).unlazy())
+print((a % b).unlazy())
