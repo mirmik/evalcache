@@ -7,6 +7,7 @@ import types
 import hashlib
 import binascii
 import operator
+import math
 
 
 class Lazy:
@@ -131,9 +132,9 @@ class LazyObject:
     def __abs__(self):      return LazyObject(self.__lazybase__, operator.__abs__,      (self))
     def __invert__(self):   return LazyObject(self.__lazybase__, operator.__invert__,   (self))
     def __round__(self, n): return LazyObject(self.__lazybase__, operator.__round__,    (self, n))
-    def __floor__(self):    return LazyObject(self.__lazybase__, lambda x: floor(x),    (self))
-    def __ceil__(self):     return LazyObject(self.__lazybase__, lambda x: ceil(x),     (self))
-    def __trunc__(self):    return LazyObject(self.__lazybase__, lambda x: trunc(x),    (self))
+    def __floor__(self):    return LazyObject(self.__lazybase__, math.floor,    (self))
+    def __ceil__(self):     return LazyObject(self.__lazybase__, math.ceil,     (self))
+    def __trunc__(self):    return LazyObject(self.__lazybase__, math.trunc,    (self))
 
     #Augmented assignment
     #This methods group are not supported
