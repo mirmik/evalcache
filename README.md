@@ -10,7 +10,7 @@ Since the library saves every computed object in the cache, including intermedia
 
 ## Install
 ```sh
-pip3 install evalcache
+python3 -m pip install evalcache
 ```
 
 ## Details
