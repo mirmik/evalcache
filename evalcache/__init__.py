@@ -4,4 +4,4 @@ from evalcache.dircache import DirCache
 from evalcache.lazy import Lazy, LazyObject
 from evalcache.lazy import unlazy, encache, decache, print_tree
 
-__version__ = "0.3.7"
+__version__ = "1.0.0"
