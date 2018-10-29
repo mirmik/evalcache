@@ -43,9 +43,11 @@ class Memoize(Lazy):
 		Lazy.__init__(self, {}, algo, True, True, diag, onplace=True)
 
 class MetaLazyObject(type):
-	def __call__(cls, lazifier, generic=None, args=(), kwargs={}, encache=None, decache=None, value=None, onplace = None):
+	"""LazyObject has metaclass for creation control. It uses with onplace expand option"""
+
+	def __call__(cls, lazifier, *args, onplace = None, **kwargs):
 		obj = cls.__new__(cls)
-		cls.__init__(obj, lazifier, generic, args, kwargs, encache, decache, value)
+		cls.__init__(obj, lazifier, *args, **kwargs)
 		
 		if onplace is None:
 			onplace = lazifier.onplace
