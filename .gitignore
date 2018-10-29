@@ -104,6 +104,8 @@ ENV/
 **/target
 
 **/.evalcache
+**/.evalfile
+mirmik.dat
 
 html
 latex
