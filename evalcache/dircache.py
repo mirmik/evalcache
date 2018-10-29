@@ -40,5 +40,6 @@ class DirCache:
         with open(os.path.join(self.dirpath, key), "rb") as fl:
             return pickle.load(fl)
 
-    def makePathTo(self, name):
-        return os.path.join(self.dirpath, name)
+    def makePathTo(self, key):
+        """Create path to hashable data with key"""
+        return os.path.join(self.dirpath, key)
