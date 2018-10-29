@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, "..")
 
 import evalcache
-lazy = evalcache.Memoize(diag = True)
+lazy = evalcache.HeapLazy(diag = True)
 
 a = lazy(57)
 b = lazy(89)

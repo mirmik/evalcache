@@ -33,7 +33,7 @@ class Lazy:
         """Construct lazy wrap for target object."""
         return LazyObject(self, value=wrapped_object)
 
-class Memoize(Lazy):
+class HeapLazy(Lazy):
 	def __init__(self, algo=hashlib.sha256, diag=False):
 		Lazy.__init__(self, None, algo, False, False, diag)
 
