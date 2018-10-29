@@ -57,9 +57,9 @@ class LazyFileObject(LazyObject):
 
         path_of_copy = self.__lazybase__.fcache.makePathTo(
             self.__lazyhexhash__)
+
         if self.__lazyhexhash__ in self.__lazybase__.fcache:
             os.link(path_of_copy, path)
-
         else:
             args = expand(self.args)
             kwargs = expand(self.kwargs)
