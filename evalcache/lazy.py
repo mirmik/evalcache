@@ -62,7 +62,7 @@ class Memoize(Lazy):
 		Lazy.__init__(self, {}, algo, True, True, onplace, True, diag, print_invokes, print_values, )
 
 class MetaLazyObject(type):
-	"""LazyObject has metaclass for creation control. It uses with onplace expand option"""
+	"""LazyObject has metaclass for creation control. It uses for onplace expand option supporting"""
 
 	def __call__(cls, lazifier, *args, onplace = None, **kwargs):
 		obj = cls.__new__(cls)
@@ -123,11 +123,16 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.__lazyhexhash__ = m.hexdigest()
 
 	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
+		"""Логика порождающего вызова.
+
+		Если установлена опция onuse, происходит мгновенное раскрытие.
+		В независимости от необходимости мгновенного раскрытия создаётся ленивый
+		объект, чтобы задействовать логику кэша."""
+
 		if self.__lazybase__.print_invokes:
 			print("__lazyinvoke__", generic, args, kwargs)
-
-		lazyobj = LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)
-		
+			
+		lazyobj = LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)		
 		return lazyobj.unlazy() if self.__unlazyonuse__ else lazyobj
 
 	#Callable
