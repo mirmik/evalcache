@@ -125,9 +125,10 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
 		if self.__lazybase__.print_invokes:
 			print("__lazyinvoke__", generic, args, kwargs)
-		if self.__unlazyonuse__:
-			return LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache).unlazy()
-		return LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)
+
+		lazyobj = LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)
+		
+		return lazyobj.unlazy() if self.__unlazyonuse__ else lazyobj
 
 	#Callable
 	def __call__(self, *args, **kwargs): 
