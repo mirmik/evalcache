@@ -6,7 +6,7 @@ sys.path.insert(0, "..")
 import evalcache
 import math
 
-lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
+lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"), diag=True)
 
 @lazy 
 def foo():
