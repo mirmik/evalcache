@@ -11,19 +11,20 @@ import os
 
 
 class LazyFile:
-	"""Декоратор функций создания ленивых файлов."""
+    """Декоратор функций создания ленивых файлов."""
 
 
-    def __init__(self, fcache=DirCache(".evalfile"), algo=hashlib.sha256, encache=True, decache=True, diag=False, onplace=False):
+    def __init__(self, fcache=DirCache(".evalfile"), algo=hashlib.sha256, diag=False):
         self.algo = algo
         self.fcache = fcache
-        self.encache = encache
-        self.decache = decache
+        self.encache = True
+        self.decache = True
         self.diag = diag
-        self.onplace = onplace
+        self.onplace = False
+        self.onuse = False
 
     def __call__(self, field="path"):
-    	"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
+        """Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
         
         def decorator(func):
             return LazyFileMaker(self, func, field)
@@ -32,7 +33,7 @@ class LazyFile:
 
 
 class LazyFileMaker(LazyObject):
-	"""Обёртка - фабрика. Создаёт и тут же расскрывает объект ленивого файла"""
+    """Обёртка - фабрика. Создаёт и тут же расскрывает объект ленивого файла"""
 
     def __init__(self, lazyfier, value, field):
         LazyObject.__init__(self, lazyfier, value=value)
@@ -43,8 +44,8 @@ class LazyFileMaker(LazyObject):
 
 
 class LazyFileObject(LazyObject):
-	"""Объект ленивого файла наследует логику построения хэша от предка, но переопределяет
-	логику раскрытия."""
+    """Объект ленивого файла наследует логику построения хэша от предка, но переопределяет
+    логику раскрытия."""
 
     def __init__(self, *args, **kwargs):
         LazyObject.__init__(self, *args, **kwargs)
