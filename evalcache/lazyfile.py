@@ -22,6 +22,7 @@ class LazyFile:
         self.diag = diag
         self.onplace = False
         self.onuse = False
+        self.print_values = False
 
     def __call__(self, field="path"):
         """Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
@@ -70,8 +71,12 @@ class LazyFileObject(LazyObject):
             self.__lazyhexhash__)
 
         if self.__lazyhexhash__ in self.__lazybase__.fcache:
+            if self.__lazybase__.diag:
+                print("restore", self.__lazyhexhash__)
             os.link(path_of_copy, path)
         else:
+            if self.__lazybase__.diag:
+                print("store", self.__lazyhexhash__)
             args = expand(self.args)
             kwargs = expand(self.kwargs)
             ret = func(*args, **kwargs)

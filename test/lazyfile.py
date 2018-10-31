@@ -7,13 +7,13 @@ import evalcache
 import evalcache.lazyfile
 #lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"), encache=False, decache=False)
 #lazy = evalcache.Memoize()
-lazyfile = evalcache.lazyfile.LazyFile()
+lazyfile = evalcache.lazyfile.LazyFile(diag = True)
 
 @lazyfile(field="path")
 def foo(a, path):
 	f = open(path, "w")
 	f.close()
 
-foo(3,"mirmik.dat")
-foo(3,path="mirmik.dat")
-foo(path="mirmik.dat", a=5)
+foo(3,"mirmik0.dat")
+foo(3,path="mirmik1.dat")
+foo(path="mirmik2.dat", a=5)
