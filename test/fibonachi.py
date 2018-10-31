@@ -9,7 +9,7 @@ import math
 #lazy = evalcache.Memoize(onplace = False, diag=True, print_invokes=True, print_values=True)
 lazy = evalcache.Memoize(onplace = True)
 
-#@lazy
+@lazy
 def fib(n):
 	if n < 2:
 		return n

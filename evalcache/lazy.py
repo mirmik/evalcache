@@ -131,7 +131,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 		if self.__lazybase__.print_invokes:
 			print("__lazyinvoke__", generic, args, kwargs)
-			
+
 		lazyobj = LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)		
 		return lazyobj.unlazy() if self.__unlazyonuse__ else lazyobj
 
@@ -179,8 +179,15 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 	#Compare operators:
 	#Is not supported as lazy operations
-	def __eq__(self, oth): return self.__lazyhash__ == oth.__lazyhash__ 
-	def __ne__(self, oth): return self.__lazyhash__ != oth.__lazyhash__ 
+	def __eq__(self, oth):
+		if self.__unlazyonuse__:
+			return self.__lazyinvoke__(operator.__eq__, (self,oth))
+		return self.__lazyhash__ == oth.__lazyhash__ 
+	
+	def __ne__(self, oth):
+		if self.__unlazyonuse__:
+			return self.__lazyinvoke__(operator.__ne__, (self,oth))
+		return self.__lazyhash__ != oth.__lazyhash__ 
 	#def __eq__(self, oth): 
 	#def __ne__(self, oth): 
 	#def __lt__(self, oth):
