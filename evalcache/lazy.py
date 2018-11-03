@@ -47,8 +47,8 @@ class Lazy:
 class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
 
-	def __init__(self, algo=hashlib.sha256, diag=False):
-		Lazy.__init__(self, cache=None, algo=algo, diag=diag, fastdo=True)
+	def __init__(self, algo=hashlib.sha256, diag=False, print_invokes=False, print_values=False):
+		Lazy.__init__(self, cache=None, algo=algo, diag=diag, print_invokes=print_invokes, print_values=print_values, fastdo=True)
 
 class Memoize(Lazy):
 	"""Memoize - это вариант декоратора, проводящего более традиционную ленификацию. 
@@ -105,6 +105,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.__decache__ = decache if decache is not None else self.__lazybase__.decache
 		self.__unlazyonuse__ = onuse if onuse is not None else self.__lazybase__.onuse
 		self.__lazyhint__ = hint
+		self.__lazyheap__ = value is not None
 
 		self.generic = generic
 		self.args = args
@@ -126,8 +127,9 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
 
-		if self.__lazyvalue__ == None and self.__lazybase__.fastdo:
+		if self.__lazyvalue__ is None and self.__lazybase__.fastdo:
 			self.__lazyvalue__ = lazydo(self)
+			self.__lazyheap__ = True
 
 	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
 		"""Логика порождающего вызова.
@@ -300,7 +302,7 @@ def unlazy(obj):
 	If object has disabled __decache__ loading prevented.
 	"""
 	# If local context was setted we can return object imediatly
-	if (obj.__lazyvalue__ is not None):
+	if obj.__lazyheap__:
 		# Load from local context ...
 		if obj.generic is None:
 			# for endpoint object.
@@ -314,11 +316,13 @@ def unlazy(obj):
 		# Load from cache.
 		msg = 'load'
 		obj.__lazyvalue__ = obj.__lazybase__.cache[obj.__lazyhexhash__]
+		obj.__lazyheap__ = True
 
 	# Object wasn't stored early. Evaluate it. Store it if not prevented.
 	else:
 		# Execute ...
 		obj.__lazyvalue__ = lazydo(obj)
+		obj.__lazyheap__ = True
 		if obj.__encache__:
 			# with storing.
 			msg = 'save'
@@ -333,6 +337,9 @@ def unlazy(obj):
 		else:
 			print(msg, obj.__lazyhexhash__)
 	
+	while isinstance(obj.__lazyvalue__, LazyObject):
+		obj.__lazyvalue__ = expand(obj.__lazyvalue__)
+
 	# And, anyway, here our object in obj.__lazyvalue__
 	return obj.__lazyvalue__
 

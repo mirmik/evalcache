@@ -4,8 +4,19 @@
 import sys
 sys.path.insert(0, "..")
 
+import types
 import unittest
 import test_environment
+
+class A:
+    def __init__(self):
+        self.i = 3
+
+    def pr(self, *args, **kwargs):
+        print()
+        print(args, kwargs)
+        print()
+
 
 class TestLazy(unittest.TestCase):
 
@@ -65,6 +76,9 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(ret, 34)
         self.assertEqual(test_environment.count_cached_objects(), 18) #range(0-9) and 8 summ
 
+    def test_method(self):
+        A.lazy_pr = types.MethodType( test_environment.lazy(A.pr), A )
+        A.lazy_pr(1, 2, 3, k=4).unlazy()
 
 class TestMemoize(unittest.TestCase):
 
