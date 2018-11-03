@@ -27,7 +27,7 @@ class Lazy:
 	def __init__(
 			self, cache, algo=hashlib.sha256, 
 			encache=True, decache=True,
-			onplace=False, onuse=False,
+			onplace=False, onuse=False, fastdo=False,
 			diag=False, print_invokes=False, print_values=False):
 		self.cache = cache
 		self.algo = algo
@@ -36,18 +36,19 @@ class Lazy:
 		self.diag = diag
 		self.onplace = onplace
 		self.onuse = onuse
+		self.fastdo = fastdo
 		self.print_invokes = print_invokes
 		self.print_values = print_values
 
-	def __call__(self, wrapped_object):
+	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
-		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False)
+		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
 
-class HeapLazy(Lazy):
+class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
 
 	def __init__(self, algo=hashlib.sha256, diag=False):
-		Lazy.__init__(self, None, algo, False, False, diag)
+		Lazy.__init__(self, cache=None, algo=algo, diag=diag, fastdo=True)
 
 class Memoize(Lazy):
 	"""Memoize - это вариант декоратора, проводящего более традиционную ленификацию. 
@@ -98,11 +99,12 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 	def __init__(
 				self, lazifier, generic=None, args=(), kwargs={}, 
-				encache=None, decache=None, onuse=None, value=None):
+				encache=None, decache=None, onuse=None, value=None, hint=None):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
 		self.__decache__ = decache if decache is not None else self.__lazybase__.decache
 		self.__unlazyonuse__ = onuse if onuse is not None else self.__lazybase__.onuse
+		self.__lazyhint__ = hint
 
 		self.generic = generic
 		self.args = args
@@ -118,9 +120,14 @@ class LazyObject(object, metaclass = MetaLazyObject):
 			updatehash(m, kwargs)
 		if value is not None:
 			updatehash(m, value)
+		if hint is not None:
+			updatehash(m, hint)
 
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
+
+		if self.__lazyvalue__ == None and self.__lazybase__.fastdo:
+			self.__lazyvalue__ = lazydo(self)
 
 	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
 		"""Логика порождающего вызова.
@@ -365,8 +372,8 @@ def updatehash_LazyObject(m, obj):
 
 def updatehash_function(m, obj):
 	if hasattr(obj, "__qualname__"):
-		if obj.__qualname__ == "<lambda>":
-			print("WARNING: evalcache cann't work with global lambdas correctly")
+		#if obj.__qualname__ == "<lambda>":
+		#	print("WARNING: evalcache cann't work with global lambdas correctly without hints")
 		updatehash_str(m, obj.__qualname__)
 	elif hasattr(obj, "__name__"):
 		updatehash_str(m, obj.__name__)

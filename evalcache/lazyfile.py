@@ -22,13 +22,14 @@ class LazyFile:
         self.diag = diag
         self.onplace = False
         self.onuse = False
+        self.fastdo = False
         self.print_values = False
 
     def __call__(self, field="path"):
         """Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
         
-        def decorator(func):
-            return LazyFileMaker(self, func, field)
+        def decorator(func, hint=None):
+            return LazyFileMaker(self, func, field, hint)
 
         return decorator
 
@@ -36,8 +37,8 @@ class LazyFile:
 class LazyFileMaker(LazyObject):
     """Обёртка - фабрика. Создаёт и тут же расскрывает объект ленивого файла"""
 
-    def __init__(self, lazyfier, value, field):
-        LazyObject.__init__(self, lazyfier, value=value)
+    def __init__(self, lazyfier, value, field, hint=None):
+        LazyObject.__init__(self, lazyfier, value=value, hint=hint)
         self.field = field
 
     def __call__(self, *args, **kwargs):
