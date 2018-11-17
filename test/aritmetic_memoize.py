@@ -7,7 +7,7 @@ import evalcache
 import math
 
 #lazy = evalcache.Memoize(strategy="onuse", diag=True, print_invokes=True)
-lazy = evalcache.Memoize(onplace=False, diag=True)
+lazy = evalcache.Memoize(onplace=False)
 
 @lazy 
 def foo():

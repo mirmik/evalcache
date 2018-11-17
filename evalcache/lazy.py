@@ -7,6 +7,7 @@ import types
 import hashlib
 import binascii
 import operator
+import inspect
 import math
 
 
@@ -28,7 +29,7 @@ class Lazy:
 			self, cache, algo=hashlib.sha256, 
 			encache=True, decache=True,
 			onplace=False, onuse=False, fastdo=False,
-			diag=False, print_invokes=False, print_values=False):
+			diag=False, print_invokes=False, print_values=False, function_dump=True):
 		self.cache = cache
 		self.algo = algo
 		self.encache = encache
@@ -39,6 +40,7 @@ class Lazy:
 		self.fastdo = fastdo
 		self.print_invokes = print_invokes
 		self.print_values = print_values
+		self.function_dump = function_dump
 
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
@@ -47,20 +49,18 @@ class Lazy:
 class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
 
-	def __init__(self, algo=hashlib.sha256, diag=False, print_invokes=False, print_values=False):
-		Lazy.__init__(self, cache=None, algo=algo, diag=diag, print_invokes=print_invokes, print_values=print_values, fastdo=True)
+	def __init__(self, **kwargs):
+		Lazy.__init__(self, cache=None, fastdo=True, **kwargs)
 
 class Memoize(Lazy):
 	"""Memoize - это вариант декоратора, проводящего более традиционную ленификацию. 
 	
 	Для кэширования файлов используется словарь в оперативной памяти. Созданные объекты
-	раскрываются сразу в момент создания.
+	раскрываются или в момент создания или в момент использования.
 	"""
 
-	def __init__(
-			self, algo=hashlib.sha256, onplace=False, 
-			diag=False, print_invokes=False, print_values=False):
-		Lazy.__init__(self, {}, algo, True, True, onplace, True, diag, print_invokes, print_values, )
+	def __init__(self, onplace=False, **kwargs):
+		Lazy.__init__(self, cache={}, onplace=onplace, onuse=True, **kwargs)
 
 class MetaLazyObject(type):
 	"""LazyObject has metaclass for creation control. It uses for onplace expand option supporting"""
@@ -112,17 +112,17 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.kwargs = kwargs
 		self.__lazyvalue__ = value
 
-		m = self.__lazybase__.algo()
+		m = lazifier.algo()
 		if generic is not None:
-			updatehash(m, generic)
+			updatehash(m, generic, lazifier)
 		if len(args):
-			updatehash(m, args)
+			updatehash(m, args, lazifier)
 		if len(kwargs):
-			updatehash(m, kwargs)
+			updatehash(m, kwargs, lazifier)
 		if value is not None:
-			updatehash(m, value)
+			updatehash(m, value, lazifier)
 		if hint is not None:
-			updatehash(m, hint)
+			updatehash(m, hint, lazifier)
 
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
@@ -358,35 +358,39 @@ def expand(arg):
 		return unlazy(arg) if isinstance(arg, LazyObject) else arg
 
 
-def updatehash_list(m, obj):
+def updatehash_list(m, obj, base):
 	for e in obj:
-		updatehash(m, e)
+		updatehash(m, e, base)
 
 
-def updatehash_dict(m, obj):
+def updatehash_dict(m, obj, base):
 	for k, v in sorted(obj.items()):
-		updatehash(m, k)
-		updatehash(m, v)
+		updatehash(m, k, base)
+		updatehash(m, v, base)
 
 
-def updatehash_str(m, obj):
+def updatehash_str(m, obj, base):
 	m.update(obj.encode("utf-8"))
 
 
-def updatehash_LazyObject(m, obj):
+def updatehash_LazyObject(m, obj, base):
 	m.update(obj.__lazyhash__)
 
 
-def updatehash_function(m, obj):
+def updatehash_function(m, obj, base):
 	if hasattr(obj, "__qualname__"):
 		#if obj.__qualname__ == "<lambda>":
 		#	print("WARNING: evalcache cann't work with global lambdas correctly without hints")
-		updatehash_str(m, obj.__qualname__)
+		updatehash_str(m, obj.__qualname__, base)
 	elif hasattr(obj, "__name__"):
-		updatehash_str(m, obj.__name__)
+		updatehash_str(m, obj.__name__, base)
+
+	if base.function_dump:
+		updatehash_str(m, inspect.getsource(obj), base)
+
 	if hasattr(obj, "__module__") and obj.__module__:
-		updatehash_str(m, obj.__module__)
-		updatehash_str(m, sys.modules[obj.__module__].__file__)
+		updatehash_str(m, obj.__module__, base)
+		updatehash_str(m, sys.modules[obj.__module__].__file__, base)
 
 
 # Table of hash functions for special types.
@@ -400,7 +404,7 @@ hashfuncs = {
 }
 
 
-def updatehash(m, obj):
+def updatehash(m, obj, base):
 	"""Update hash in hashlib-like algo with hashable object
 
 	As usual we use hash of object representation, but for special types we can set
@@ -415,12 +419,12 @@ def updatehash(m, obj):
 	obj -- hashable object
 	"""
 	if obj.__class__ in hashfuncs:
-		hashfuncs[obj.__class__](m, obj)
+		hashfuncs[obj.__class__](m, obj, base)
 	else:
 		if obj.__class__.__repr__ is object.__repr__:
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				  .format(obj.__class__))
-		updatehash_str(m, repr(obj))
+		updatehash_str(m, repr(obj), base)
 
 
 __tree_tab = "    "
