@@ -31,7 +31,7 @@ class Lazy:
 			encache=True, decache=True,
 			onplace=False, onuse=False, fastdo=False,
 			diag=False, print_invokes=False, print_values=False, 
-			function_dump=False,
+			function_dump=True,
 			updatehash_profiling=False):
 		self.cache = cache
 		self.algo = algo
