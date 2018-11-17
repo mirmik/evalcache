@@ -160,7 +160,7 @@ class TestOptions(unittest.TestCase):
         test_environment.clean_onplace_memoize()
 
     def test_function_dump(self):
-        nlazy = evalcache.Lazy(cache = evalcache.DirCache(test_environment.dircache_path), onplace=True)
+        nlazy = evalcache.Lazy(cache = evalcache.DirCache(test_environment.dircache_path), function_dump=False, onplace=True)
         flazy = evalcache.Lazy(cache = evalcache.DirCache(test_environment.dircache_path), function_dump=True, onplace=True)
 
         lmb_1 = lambda: 1
