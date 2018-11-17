@@ -7,15 +7,14 @@ sys.path.insert(0, "..")
 import types
 import unittest
 import test_environment
+import evalcache
 
 class A:
     def __init__(self):
         self.i = 3
 
-    def pr(self, *args, **kwargs):
-        print()
-        print(args, kwargs)
-        print()
+    def summ(self, a, b, c, d):
+        return a + b + c + d
 
 
 class TestLazy(unittest.TestCase):
@@ -77,8 +76,10 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(test_environment.count_cached_objects(), 18) #range(0-9) and 8 summ
 
     def test_method(self):
-        A.lazy_pr = types.MethodType( test_environment.lazy(A.pr), A )
-        A.lazy_pr(1, 2, 3, k=4).unlazy()
+        A.lazy_sum = types.MethodType( test_environment.lazy(A.summ), A )
+        ret = A.lazy_sum(1, 2, 3, d = 4).unlazy()
+        self.assertEqual(ret, 10)
+
 
 class TestMemoize(unittest.TestCase):
 
@@ -153,5 +154,33 @@ class TestOnplaceMemoize(unittest.TestCase):
         self.assertEqual(len(test_environment.onplace_memoize.cache), 10) #range(0-9)
         
 
+class TestOptions(unittest.TestCase):
+
+    def tearDown(self):
+        test_environment.clean_onplace_memoize()
+
+    def test_function_dump(self):
+        nlazy = evalcache.Lazy(cache = evalcache.DirCache(test_environment.dircache_path), onplace=True)
+        flazy = evalcache.Lazy(cache = evalcache.DirCache(test_environment.dircache_path), function_dump=True, onplace=True)
+
+        lmb_1 = lambda: 1
+        lmb_2 = lambda: 2
+        
+        nlazy_11 = nlazy(lmb_1, hint="a")()
+        nlazy_12 = nlazy(lmb_2, hint="b")()
+        nlazy_21 = nlazy(lmb_1)()
+        nlazy_22 = nlazy(lmb_2)()
+
+        flazy_11 = flazy(lmb_1, hint="a")()
+        flazy_12 = flazy(lmb_2, hint="b")()
+        flazy_21 = flazy(lmb_1)()
+        flazy_22 = flazy(lmb_2)()
+
+        self.assertNotEqual(    nlazy_11, nlazy_12)
+        self.assertEqual(       nlazy_21, nlazy_22)
+        self.assertNotEqual(    flazy_11, flazy_12)
+        self.assertNotEqual(    flazy_21, flazy_22)
+
 if __name__ == '__main__':
+    test_environment.clean()
     unittest.main()

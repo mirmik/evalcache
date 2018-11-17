@@ -9,6 +9,7 @@ import binascii
 import operator
 import inspect
 import math
+import time
 
 
 class Lazy:
@@ -29,7 +30,9 @@ class Lazy:
 			self, cache, algo=hashlib.sha256, 
 			encache=True, decache=True,
 			onplace=False, onuse=False, fastdo=False,
-			diag=False, print_invokes=False, print_values=False, function_dump=True):
+			diag=False, print_invokes=False, print_values=False, 
+			function_dump=False,
+			updatehash_profiling=False):
 		self.cache = cache
 		self.algo = algo
 		self.encache = encache
@@ -41,6 +44,7 @@ class Lazy:
 		self.print_invokes = print_invokes
 		self.print_values = print_values
 		self.function_dump = function_dump
+		self.updatehash_profiling = updatehash_profiling
 
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
@@ -418,6 +422,9 @@ def updatehash(m, obj, base):
 	m -- hashlib-like algorithm instance.
 	obj -- hashable object
 	"""
+	if base.updatehash_profiling:
+		start = time.time()
+
 	if obj.__class__ in hashfuncs:
 		hashfuncs[obj.__class__](m, obj, base)
 	else:
@@ -425,6 +432,10 @@ def updatehash(m, obj, base):
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				  .format(obj.__class__))
 		updatehash_str(m, repr(obj), base)
+
+	if base.updatehash_profiling:
+		end = time.time()
+		print("updatehash elapse for {}: {}".format(repr(obj), end - start))
 
 
 __tree_tab = "    "
