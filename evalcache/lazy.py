@@ -138,72 +138,58 @@ class LazyObject(object, metaclass = MetaLazyObject):
 				self.__lazyvalue__ = unlazy(self)
 			self.__lazyheap__ = True
 
-
-	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
-		"""Логика порождающего вызова.
-
-		Если установлена опция onuse, происходит мгновенное раскрытие.
-		В независимости от необходимости мгновенного раскрытия создаётся ленивый
-		объект, чтобы задействовать логику кэша."""
-
-		if self.__lazybase__.print_invokes:
-			print("__lazyinvoke__", generic, args, kwargs)
-
-		lazyobj = LazyObject(self.__lazybase__, generic, args, kwargs, encache, decache)		
-		return lazyobj.unlazy() if self.__unlazyonuse__ else lazyobj
-
 	#Callable
 	def __call__(self, *args, **kwargs): 
-		return self.__lazyinvoke__(self, args, kwargs)
+		return lazyinvoke(self, self, args, kwargs)
 	
 	#Attribute control
 	def __getattr__(self, item): 
-		return self.__lazyinvoke__( 
+		return lazyinvoke(self,  
 									getattr, (self, item), 
 									encache = False, decache = False)
 	
 	#Arithmetic operators:
-	def __add__(self, oth):         return self.__lazyinvoke__(operator.__add__, (self, oth))
-	def __sub__(self, oth):         return self.__lazyinvoke__(operator.__sub__,      (self, oth))
-	def __mul__(self, oth):         return self.__lazyinvoke__(operator.__mul__,      (self, oth))
-	def __floordiv__(self, oth):    return self.__lazyinvoke__(operator.__floordiv__, (self, oth))
-	def __div__(self, oth):         return self.__lazyinvoke__(operator.__div__,      (self, oth))
-	def __truediv__(self, oth):     return self.__lazyinvoke__(operator.__truediv__,  (self, oth))
-	def __mod__(self, oth):         return self.__lazyinvoke__(operator.__mod__,      (self, oth))
-	def __divmod__(self, oth):      return self.__lazyinvoke__(divmod,                (self, oth))
-	def __pow__(self, oth):         return self.__lazyinvoke__(operator.__pow__,      (self, oth))
-	def __lshift__(self, oth):      return self.__lazyinvoke__(operator.__lshift__,   (self, oth))
-	def __rshift__(self, oth):      return self.__lazyinvoke__(operator.__rshift__,   (self, oth))
-	def __and__(self, oth):         return self.__lazyinvoke__(operator.__and__,      (self, oth))
-	def __or__(self, oth):          return self.__lazyinvoke__(operator.__or__,       (self, oth))
-	def __xor__(self, oth):         return self.__lazyinvoke__(operator.__xor__,      (self, oth))
+	def __add__(self, oth):         return lazyinvoke(self, operator.__add__, (self, oth))
+	def __sub__(self, oth):         return lazyinvoke(self, operator.__sub__,      (self, oth))
+	def __mul__(self, oth):         return lazyinvoke(self, operator.__mul__,      (self, oth))
+	def __floordiv__(self, oth):    return lazyinvoke(self, operator.__floordiv__, (self, oth))
+	def __div__(self, oth):         return lazyinvoke(self, operator.__div__,      (self, oth))
+	def __truediv__(self, oth):     return lazyinvoke(self, operator.__truediv__,  (self, oth))
+	def __mod__(self, oth):         return lazyinvoke(self, operator.__mod__,      (self, oth))
+	def __divmod__(self, oth):      return lazyinvoke(self, divmod,                (self, oth))
+	def __pow__(self, oth):         return lazyinvoke(self, operator.__pow__,      (self, oth))
+	def __lshift__(self, oth):      return lazyinvoke(self, operator.__lshift__,   (self, oth))
+	def __rshift__(self, oth):      return lazyinvoke(self, operator.__rshift__,   (self, oth))
+	def __and__(self, oth):         return lazyinvoke(self, operator.__and__,      (self, oth))
+	def __or__(self, oth):          return lazyinvoke(self, operator.__or__,       (self, oth))
+	def __xor__(self, oth):         return lazyinvoke(self, operator.__xor__,      (self, oth))
 
 	#Reverse arithmetic operators:
-	def __radd__(self, oth):        return self.__lazyinvoke__(operator.__add__,      (oth, self))
-	def __rsub__(self, oth):        return self.__lazyinvoke__(operator.__sub__,      (oth, self))
-	def __rmul__(self, oth):        return self.__lazyinvoke__(operator.__mul__,      (oth, self))
-	def __rfloordiv__(self, oth):   return self.__lazyinvoke__(operator.__floordiv__, (oth, self))
-	def __rdiv__(self, oth):        return self.__lazyinvoke__(operator.__div__,      (oth, self))
-	def __rtruediv__(self, oth):    return self.__lazyinvoke__(operator.__truediv__,  (oth, self))
-	def __rmod__(self, oth):        return self.__lazyinvoke__(operator.__mod__,      (oth, self))
-	def __rdivmod__(self, oth):     return self.__lazyinvoke__(divmod,                (oth, self))
-	def __rpow__(self, oth):        return self.__lazyinvoke__(operator.__pow__,      (oth, self))
-	def __rlshift__(self, oth):     return self.__lazyinvoke__(operator.__lshift__,   (oth, self))
-	def __rrshift__(self, oth):     return self.__lazyinvoke__(operator.__rshift__,   (oth, self))
-	def __rand__(self, oth):        return self.__lazyinvoke__(operator.__and__,      (oth, self))
-	def __ror__(self, oth):         return self.__lazyinvoke__(operator.__or__,       (oth, self))
-	def __rxor__(self, oth):        return self.__lazyinvoke__(operator.__xor__,      (oth, self))
+	def __radd__(self, oth):        return lazyinvoke(self, operator.__add__,      (oth, self))
+	def __rsub__(self, oth):        return lazyinvoke(self, operator.__sub__,      (oth, self))
+	def __rmul__(self, oth):        return lazyinvoke(self, operator.__mul__,      (oth, self))
+	def __rfloordiv__(self, oth):   return lazyinvoke(self, operator.__floordiv__, (oth, self))
+	def __rdiv__(self, oth):        return lazyinvoke(self, operator.__div__,      (oth, self))
+	def __rtruediv__(self, oth):    return lazyinvoke(self, operator.__truediv__,  (oth, self))
+	def __rmod__(self, oth):        return lazyinvoke(self, operator.__mod__,      (oth, self))
+	def __rdivmod__(self, oth):     return lazyinvoke(self, divmod,                (oth, self))
+	def __rpow__(self, oth):        return lazyinvoke(self, operator.__pow__,      (oth, self))
+	def __rlshift__(self, oth):     return lazyinvoke(self, operator.__lshift__,   (oth, self))
+	def __rrshift__(self, oth):     return lazyinvoke(self, operator.__rshift__,   (oth, self))
+	def __rand__(self, oth):        return lazyinvoke(self, operator.__and__,      (oth, self))
+	def __ror__(self, oth):         return lazyinvoke(self, operator.__or__,       (oth, self))
+	def __rxor__(self, oth):        return lazyinvoke(self, operator.__xor__,      (oth, self))
 
 	#Compare operators:
 	#Is not supported as lazy operations
 	def __eq__(self, oth):
 		if self.__unlazyonuse__:
-			return self.__lazyinvoke__(operator.__eq__, (self,oth))
+			return lazyinvoke(self, operator.__eq__, (self,oth))
 		return self.__lazyhash__ == oth.__lazyhash__ 
 	
 	def __ne__(self, oth):
 		if self.__unlazyonuse__:
-			return self.__lazyinvoke__(operator.__ne__, (self,oth))
+			return lazyinvoke(self, operator.__ne__, (self,oth))
 		return self.__lazyhash__ != oth.__lazyhash__ 
 	#def __eq__(self, oth): 
 	#def __ne__(self, oth): 
@@ -213,14 +199,14 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#def __ge__(self, oth): 
 
 	#Unary operators:
-	def __pos__(self):      return self.__lazyinvoke__(operator.__pos__,      (self,))
-	def __neg__(self):      return self.__lazyinvoke__(operator.__neg__,      (self,))
-	def __abs__(self):      return self.__lazyinvoke__(operator.__abs__,      (self,))
-	def __invert__(self):   return self.__lazyinvoke__(operator.__invert__,   (self,))
-	def __round__(self, n): return self.__lazyinvoke__(operator.__round__,    (self, n))
-	def __floor__(self):    return self.__lazyinvoke__(math.floor,    (self,))
-	def __ceil__(self):     return self.__lazyinvoke__(math.ceil,     (self,))
-	def __trunc__(self):    return self.__lazyinvoke__(math.trunc,    (self,))
+	def __pos__(self):      return lazyinvoke(self, operator.__pos__,      (self,))
+	def __neg__(self):      return lazyinvoke(self, operator.__neg__,      (self,))
+	def __abs__(self):      return lazyinvoke(self, operator.__abs__,      (self,))
+	def __invert__(self):   return lazyinvoke(self, operator.__invert__,   (self,))
+	def __round__(self, n): return lazyinvoke(self, operator.__round__,    (self, n))
+	def __floor__(self):    return lazyinvoke(self, math.floor,    (self,))
+	def __ceil__(self):     return lazyinvoke(self, math.ceil,     (self,))
+	def __trunc__(self):    return lazyinvoke(self, math.trunc,    (self,))
 
 	#Augmented assignment
 	#This methods group are not supported
@@ -228,13 +214,13 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#Container methods:
 	#def __len__(self): print("LEN"); exit(0); return LazyObject(self.__lazybase__, lambda x: len(x), (self))
 	def __getitem__(self, item): 
-		return self.__lazyinvoke__(
+		return lazyinvoke(self, 
 									operator.__getitem__, (self, item), 
 									encache = False, decache = False)
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
 	#def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
-	def __reversed__(self): return self.__lazyinvoke__(reversed, (self,))
+	def __reversed__(self): return lazyinvoke(self, reversed, (self,))
 	#def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
 	#def __missing__(self, key): --- ???
 	
@@ -257,7 +243,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	
 	def __str__(self): 
 		if self.__unlazyonuse__:
-			return self.__lazyinvoke__(str, (self,))
+			return lazyinvoke(self, str, (self,))
 		else:
 			return repr(self)
 	#def __repr__(self): repr(unlazy(self)) # Standart repr for best debugging
@@ -286,6 +272,19 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		if hasattr(ret, "unlazy"):
 			print("WARNING: Shadow unlazy method.")
 		return ret
+
+def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None):
+	"""Логика порождающего вызова.
+
+	Если установлена опция onuse, происходит мгновенное раскрытие.
+	В независимости от необходимости мгновенного раскрытия создаётся ленивый
+	объект, чтобы задействовать логику кэша."""
+
+	if obj.__lazybase__.print_invokes:
+		print("__lazyinvoke__", generic, args, kwargs)
+
+	lazyobj = LazyObject(obj.__lazybase__, generic, args, kwargs, encache, decache)		
+	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
 
 def lazydo(obj):
