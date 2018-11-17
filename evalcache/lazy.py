@@ -131,9 +131,13 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
 
-		if self.__lazyvalue__ is None and self.__lazybase__.fastdo:
-			self.__lazyvalue__ = lazydo(self)
+		if self.__lazybase__.fastdo and self.__lazyvalue__ is None:
+			if self.__lazybase__.cache is None:
+				self.__lazyvalue__ = lazydo(self)
+			else:
+				self.__lazyvalue__ = unlazy(self)
 			self.__lazyheap__ = True
+
 
 	def __lazyinvoke__(self, generic, args = [], kwargs = {}, encache=None, decache=None):
 		"""Логика порождающего вызова.
