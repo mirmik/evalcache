@@ -1,7 +1,7 @@
 import evalcache
 import evalcache.lazy
 
-from evalcache.lazy import expand, hashfuncs, updatehash_LazyObject, LazyObject
+from evalcache.lazy import expand, hashfuncs, updatehash_LazyObject, LazyObject, Lazy
 from evalcache.dircache import DirCache
 
 import hashlib
@@ -10,20 +10,11 @@ import inspect
 import os
 
 
-class LazyFile:
+class LazyFile(Lazy):
     """Декоратор функций создания ленивых файлов."""
 
-
-    def __init__(self, fcache=DirCache(".evalfile"), algo=hashlib.sha256, diag=False):
-        self.algo = algo
-        self.fcache = fcache
-        self.encache = True
-        self.decache = True
-        self.diag = diag
-        self.onplace = False
-        self.onuse = False
-        self.fastdo = False
-        self.print_values = False
+    def __init__(self, cache=DirCache(".evalfile"), **kwargs):
+        Lazy.__init__(self, cache, **kwargs)
 
     def __call__(self, field="path"):
         """Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
@@ -68,10 +59,10 @@ class LazyFileObject(LazyObject):
         if os.path.exists(path):
             os.remove(path)
 
-        path_of_copy = self.__lazybase__.fcache.makePathTo(
+        path_of_copy = self.__lazybase__.cache.makePathTo(
             self.__lazyhexhash__)
 
-        if self.__lazyhexhash__ in self.__lazybase__.fcache:
+        if self.__lazyhexhash__ in self.__lazybase__.cache:
             if self.__lazybase__.diag:
                 print("restore", self.__lazyhexhash__)
             os.link(path_of_copy, path)
