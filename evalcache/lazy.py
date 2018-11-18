@@ -22,10 +22,14 @@ class Lazy:
 	algo -- hashing algorithm for keys making. (hashlib-like)
 	encache -- default state of enabling cache storing
 	decache -- default state of enabling cache loading
-	diag -- diagnostic output
 	onplace -- возвращать результат вычисления вместо ленивого объекта
 	onuse -- раскрывать ленивый объект при попытки его использования
 	fastdo -- вычислять объект при создании ленивого объекта
+	diag -- cache diagnostic output
+	diag_values -- add values print to cache diagnostic
+	print_invokes -- LazyObject invokes diagnostic output
+	function_dump -- use code dump for function hashing
+	updatehash_profiling -- updatehash diagnostic output
 	"""
 
 	def __init__(
