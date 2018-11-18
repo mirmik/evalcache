@@ -55,6 +55,8 @@ class LazyFileObject(LazyObject):
                 if spec.args[i] == self.generic.field:
                     path = self.args[i]
                     break
+            else:
+                print("ERROR: Argument {} don`t exist in wrapped_function".format(self.generic.field))
 
         if os.path.exists(path):
             os.remove(path)

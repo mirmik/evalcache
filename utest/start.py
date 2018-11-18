@@ -16,6 +16,9 @@ class A:
     def summ(self, a, b, c, d):
         return a + b + c + d
 
+    def __repr__(self):
+        return "A" + str(self.i)
+
 
 class TestLazy(unittest.TestCase):
 
@@ -75,11 +78,45 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(ret, 34)
         self.assertEqual(test_environment.count_cached_objects(), 18) #range(0-9) and 8 summ
 
-    def test_method(self):
-        A.lazy_sum = types.MethodType( test_environment.lazy(A.summ), A )
-        ret = A.lazy_sum(1, 2, 3, d = 4).unlazy()
-        self.assertEqual(ret, 10)
+    #def test_method_strange(self):
+    #    A.lazy_sum = types.MethodType( test_environment.lazy(A.summ), A )
+    #    ret = A.lazy_sum(1,2,3,d=4)
+    #    self.assertEqual(ret.unlazy(), 10)
 
+    def test_method(self):
+        class Cls:
+            def get_three(self): return 3
+            def __repr__(self): return "Cls"
+
+        Cls.get_three = test_environment.lazy(Cls.get_three)
+        a = Cls()
+        self.assertEqual(a.get_three().unlazy(), 3)
+
+    def test_getattr(self):
+        lazy = evalcache.Lazy(cache = {})
+
+        class Cls:
+            def __init__(self): self.i = 3
+            def __repr__(self): return "Cls"
+        
+        Cls = lazy(Cls)
+        a = Cls()
+
+        self.assertEqual(a.i.unlazy(), 3)
+
+    def test_getlazyattr(self):
+        lazy = evalcache.LazyHash()
+
+        class Cls:
+            def __init__(self): self.i = 3
+            def foo(self): return 4
+        
+        Cls.foo = lazy(Cls.foo)
+        Cls = lazy(Cls)
+        a = Cls()
+
+        self.assertEqual(a.i.unlazy(), 3)
+        self.assertEqual(a.foo().unlazy(), 4)
 
 class TestMemoize(unittest.TestCase):
 

@@ -8,6 +8,7 @@ import hashlib
 import binascii
 import operator
 import inspect
+import functools
 import math
 import time
 
@@ -22,8 +23,9 @@ class Lazy:
 	encache -- default state of enabling cache storing
 	decache -- default state of enabling cache loading
 	diag -- diagnostic output
-	onplace -- возвращать результат вычисления вместо ленивого объекта. 
-	onuse -- раскрывать ленивый объект при попытки его использования. 
+	onplace -- возвращать результат вычисления вместо ленивого объекта
+	onuse -- раскрывать ленивый объект при попытки его использования
+	fastdo -- вычислять объект при создании ленивого объекта
 	"""
 
 	def __init__(
@@ -46,6 +48,10 @@ class Lazy:
 		self.function_dump = function_dump
 		self.updatehash_profiling = updatehash_profiling
 
+		if cache is None:
+			if encache is not False: print("WARNING: Cache is None, but encache option setted")
+			if decache is not False: print("WARNING: Cache is None, but decache option setted")
+
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
 		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
@@ -54,7 +60,7 @@ class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
 
 	def __init__(self, **kwargs):
-		Lazy.__init__(self, cache=None, fastdo=True, **kwargs)
+		Lazy.__init__(self, cache=None, encache=False, decache=False, fastdo=True, **kwargs)
 
 class Memoize(Lazy):
 	"""Memoize - это вариант декоратора, проводящего более традиционную ленификацию. 
@@ -90,6 +96,10 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	The technical problem is that a lazy wrapper does not know the type of wraped object before unlazing.
 	Therefore, we assume that any action on a lazy object is a priori true. If the object does not support 
 	the manipulation performed on it, we will know about it at the execution stage.
+
+	Details
+	-------
+	MetaLazyObject used as metaclass for support onplace expand logic.
 
 	Arguments:
 	----------
@@ -132,11 +142,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.__lazyhexhash__ = m.hexdigest()
 
 		if self.__lazybase__.fastdo and self.__lazyvalue__ is None:
-			if self.__lazybase__.cache is None:
-				self.__lazyvalue__ = lazydo(self)
-			else:
-				self.__lazyvalue__ = unlazy(self)
-			self.__lazyheap__ = True
+			unlazy(self)
 
 	#Callable
 	def __call__(self, *args, **kwargs): 
@@ -144,9 +150,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	
 	#Attribute control
 	def __getattr__(self, item): 
-		return lazyinvoke(self,  
-									getattr, (self, item), 
-									encache = False, decache = False)
+		return lazyinvoke(self, lazy_getattr, (self, item, NoExpand(self)), encache = False, decache = False)
 	
 	#Arithmetic operators:
 	def __add__(self, oth):         return lazyinvoke(self, operator.__add__, (self, oth))
@@ -214,9 +218,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#Container methods:
 	#def __len__(self): print("LEN"); exit(0); return LazyObject(self.__lazybase__, lambda x: len(x), (self))
 	def __getitem__(self, item): 
-		return lazyinvoke(self, 
-									operator.__getitem__, (self, item), 
-									encache = False, decache = False)
+		return lazyinvoke(self, operator.__getitem__, (self, item), encache = False, decache = False)
 	#def __setitem__(self, key, value) --- Not supported
 	#def __delitem__(self, key)--- Not supported
 	#def __iter__(self): return LazyObject(self.__lazybase__, lambda x: iter(x), (self))
@@ -253,7 +255,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	def __get__(self, instance, cls):
 		"""With __get__ method we can use lazy decorator on class's methods"""
 		if (instance is not None) and isinstance(self.__lazyvalue__, types.FunctionType):
-			return types.MethodType(self, instance)
+			return functools.partial(self, instance)
 		else:
 			return self
 
@@ -272,6 +274,15 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		if hasattr(ret, "unlazy"):
 			print("WARNING: Shadow unlazy method.")
 		return ret
+
+
+class NoExpand:
+	def __init__(self, lazyobj):
+		self.obj = lazyobj
+
+	def __repr__(self):
+		return repr(self.obj)
+
 
 def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None):
 	"""Логика порождающего вызова.
@@ -322,14 +333,13 @@ def unlazy(obj):
 	elif obj.__decache__ and obj.__lazyhexhash__ in obj.__lazybase__.cache:
 		# Load from cache.
 		msg = 'load'
-		obj.__lazyvalue__ = obj.__lazybase__.cache[obj.__lazyhexhash__]
-		obj.__lazyheap__ = True
+		setvalue(obj, obj.__lazybase__.cache[obj.__lazyhexhash__])
+		
 
 	# Object wasn't stored early. Evaluate it. Store it if not prevented.
 	else:
 		# Execute ...
-		obj.__lazyvalue__ = lazydo(obj)
-		obj.__lazyheap__ = True
+		setvalue(obj, lazydo(obj))
 		if obj.__encache__:
 			# with storing.
 			msg = 'save'
@@ -343,9 +353,9 @@ def unlazy(obj):
 			print(msg, obj.__lazyhexhash__, obj.__lazyvalue__)
 		else:
 			print(msg, obj.__lazyhexhash__)
-	
-	while isinstance(obj.__lazyvalue__, LazyObject):
-		obj.__lazyvalue__ = expand(obj.__lazyvalue__)
+
+	#while isinstance(obj.__lazyvalue__, LazyObject):
+	#	setvalue(obj, expand(obj.__lazyvalue__))
 
 	# And, anyway, here our object in obj.__lazyvalue__
 	return obj.__lazyvalue__
@@ -384,6 +394,10 @@ def updatehash_LazyObject(m, obj, base):
 	m.update(obj.__lazyhash__)
 
 
+def updatehash_NoExpand(m, obj, base):
+	pass
+
+
 def updatehash_function(m, obj, base):
 	if hasattr(obj, "__qualname__"):
 		#if obj.__qualname__ == "<lambda>":
@@ -403,6 +417,7 @@ def updatehash_function(m, obj, base):
 # Table of hash functions for special types.
 hashfuncs = {
 	LazyObject: updatehash_LazyObject,
+	NoExpand: updatehash_NoExpand,
 	str: updatehash_str,
 	tuple: updatehash_list,
 	list: updatehash_list,
@@ -439,6 +454,11 @@ def updatehash(m, obj, base):
 	if base.updatehash_profiling:
 		end = time.time()
 		print("updatehash elapse for {}: {}".format(repr(obj), end - start))
+
+
+def setvalue(obj, value):
+	obj.__lazyvalue__ = value
+	obj.__lazyheap__ = True
 
 
 __tree_tab = "    "
@@ -479,3 +499,20 @@ def encache(obj, sts=True):
 
 def decache(obj, sts=True):
 	obj.__decache__ = sts
+
+
+def lazy_getattr(obj, attr, wrapped_obj):
+	"""LazyObject`s getattr implementation
+	
+	If gettatr return LazyObject method, we rebind it from expanded class object to his lazy object 
+	for strait hashchain supporting 
+	"""
+
+	ret = getattr(obj, attr)
+	
+	if (isinstance(ret, functools.partial)
+			and isinstance(ret.func, LazyObject)
+			and len(ret.args) == 1):
+		return functools.partial(ret.func, wrapped_obj.obj)
+
+	return ret
