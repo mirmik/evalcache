@@ -32,7 +32,7 @@ class Lazy:
 			self, cache, algo=hashlib.sha256, 
 			encache=True, decache=True,
 			onplace=False, onuse=False, fastdo=False,
-			diag=False, print_invokes=False, print_values=False, 
+			diag=False, diag_values=False, print_invokes=False, 
 			function_dump=True,
 			updatehash_profiling=False):
 		self.cache = cache
@@ -44,13 +44,16 @@ class Lazy:
 		self.onuse = onuse
 		self.fastdo = fastdo
 		self.print_invokes = print_invokes
-		self.print_values = print_values
+		self.diag_values = diag_values
 		self.function_dump = function_dump
 		self.updatehash_profiling = updatehash_profiling
 
 		if cache is None:
 			if encache is not False: print("WARNING: Cache is None, but encache option setted")
 			if decache is not False: print("WARNING: Cache is None, but decache option setted")
+
+		if diag_values and not diag:
+			print("WARNING: diag_values is True, but diag is False")
 
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
@@ -128,15 +131,15 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 		m = lazifier.algo()
 		if generic is not None:
-			updatehash(m, generic, lazifier)
+			updatehash(m, generic, self)
 		if len(args):
-			updatehash(m, args, lazifier)
+			updatehash(m, args, self)
 		if len(kwargs):
-			updatehash(m, kwargs, lazifier)
+			updatehash(m, kwargs, self)
 		if value is not None:
-			updatehash(m, value, lazifier)
+			updatehash(m, value, self)
 		if hint is not None:
-			updatehash(m, hint, lazifier)
+			updatehash(m, hint, self)
 
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
@@ -349,7 +352,7 @@ def unlazy(obj):
 			msg = 'eval'
 	
 	if obj.__lazybase__.diag:
-		if obj.__lazybase__.print_values:
+		if obj.__lazybase__.diag_values:
 			print(msg, obj.__lazyhexhash__, obj.__lazyvalue__)
 		else:
 			print(msg, obj.__lazyhexhash__)
@@ -375,43 +378,45 @@ def expand(arg):
 		return unlazy(arg) if isinstance(arg, LazyObject) else arg
 
 
-def updatehash_list(m, obj, base):
+def updatehash_list(m, obj, lobj):
 	for e in obj:
-		updatehash(m, e, base)
+		updatehash(m, e, lobj)
 
 
-def updatehash_dict(m, obj, base):
+def updatehash_dict(m, obj, lobj):
 	for k, v in sorted(obj.items()):
-		updatehash(m, k, base)
-		updatehash(m, v, base)
+		updatehash(m, k, lobj)
+		updatehash(m, v, lobj)
 
 
-def updatehash_str(m, obj, base):
+def updatehash_str(m, obj, lobj):
 	m.update(obj.encode("utf-8"))
 
 
-def updatehash_LazyObject(m, obj, base):
+def updatehash_LazyObject(m, obj, lobj):
 	m.update(obj.__lazyhash__)
 
 
-def updatehash_NoExpand(m, obj, base):
+def updatehash_NoExpand(m, obj, lobj):
 	pass
 
 
-def updatehash_function(m, obj, base):
+def updatehash_function(m, obj, lobj):
 	if hasattr(obj, "__qualname__"):
-		#if obj.__qualname__ == "<lambda>":
-		#	print("WARNING: evalcache cann't work with global lambdas correctly without hints")
-		updatehash_str(m, obj.__qualname__, base)
+		if (obj.__qualname__ == "<lambda>" 
+				and lobj.__lazyhint__ is None 
+				and lobj.__lazybase__.function_dump is False):
+			print("WARNING: evalcache cann't work with global lambdas correctly without hints or function_dump")
+		updatehash_str(m, obj.__qualname__, lobj)
 	elif hasattr(obj, "__name__"):
-		updatehash_str(m, obj.__name__, base)
+		updatehash_str(m, obj.__name__, lobj)
 
-	if base.function_dump:
-		updatehash_str(m, inspect.getsource(obj), base)
+	if lobj.__lazybase__.function_dump:
+		updatehash_str(m, inspect.getsource(obj), lobj)
 
 	if hasattr(obj, "__module__") and obj.__module__:
-		updatehash_str(m, obj.__module__, base)
-		updatehash_str(m, sys.modules[obj.__module__].__file__, base)
+		updatehash_str(m, obj.__module__, lobj)
+		updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
 
 
 # Table of hash functions for special types.
@@ -426,7 +431,7 @@ hashfuncs = {
 }
 
 
-def updatehash(m, obj, base):
+def updatehash(m, obj, lobj):
 	"""Update hash in hashlib-like algo with hashable object
 
 	As usual we use hash of object representation, but for special types we can set
@@ -440,18 +445,18 @@ def updatehash(m, obj, base):
 	m -- hashlib-like algorithm instance.
 	obj -- hashable object
 	"""
-	if base.updatehash_profiling:
+	if lobj.__lazybase__.updatehash_profiling:
 		start = time.time()
 
 	if obj.__class__ in hashfuncs:
-		hashfuncs[obj.__class__](m, obj, base)
+		hashfuncs[obj.__class__](m, obj, lobj)
 	else:
 		if obj.__class__.__repr__ is object.__repr__:
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				  .format(obj.__class__))
-		updatehash_str(m, repr(obj), base)
+		updatehash_str(m, repr(obj), lobj)
 
-	if base.updatehash_profiling:
+	if lobj.__lazybase__.updatehash_profiling:
 		end = time.time()
 		print("updatehash elapse for {}: {}".format(repr(obj), end - start))
 
