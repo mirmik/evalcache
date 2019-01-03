@@ -49,7 +49,7 @@ class LazyFileObject(LazyObject):
         func = expand(self.generic)
         spec = inspect.getfullargspec(func)
 
-        path = funcarg.arg_with_name(self.generic.field)
+        path = arg_with_name(self.generic.field, *args, **kwargs)
         
         if os.path.exists(path):
             os.remove(path)

@@ -74,8 +74,8 @@ class Lazy:
 class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
 
-	def __init__(self, **kwargs):
-		Lazy.__init__(self, cache=None, encache=False, decache=False, fastdo=True, **kwargs)
+	def __init__(self, fastdo=True, **kwargs):
+		Lazy.__init__(self, cache=None, encache=False, decache=False, fastdo=fastdo, **kwargs)
 
 class Memoize(Lazy):
 	"""Memoize - это вариант декоратора, проводящего более традиционную ленификацию. 
@@ -518,6 +518,11 @@ def encache(obj, sts=True):
 
 def decache(obj, sts=True):
 	obj.__decache__ = sts
+
+
+def nocache(obj):
+	obj.__encache__ = False
+	obj.__decache__ = False
 
 
 def lazy_getattr(obj, attr, wrapped_obj):
