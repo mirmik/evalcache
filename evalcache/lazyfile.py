@@ -33,6 +33,7 @@ class LazyFileMaker(LazyObject):
 	def __init__(self, lazyfier, value, field, hint=None):
 		LazyObject.__init__(self, lazyfier, value=value, hint=hint)
 		self.field = field
+		self.rawfunc = value
 
 	def __call__(self, *args, **kwargs):
 		lobj = LazyFileObject(self.__lazybase__, self, args, kwargs)
@@ -48,7 +49,7 @@ class LazyFileObject(LazyObject):
 		LazyObject.__init__(self, *args, **kwargs)
 
 	def unlazy(self):
-		func = expand(self.generic)
+		func = self.generic.rawfunc
 		path = arg_with_name(self.generic.field, func, self.args, self.kwargs)
 		
 		if os.path.exists(path):
