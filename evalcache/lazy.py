@@ -479,6 +479,8 @@ def print_tree(obj, t=0):
 		#print(__tree_tab*t, end=''); print("LazyObject:")
 		if (obj.generic):
 			print(__tree_tab*t, end='')
+			print("hash: {}...\n".format(obj.__lazyhexhash__[0:20]), end='')
+			print(__tree_tab*t, end='')
 			print("generic:\n", end='')
 			print_tree(obj.generic, t+1)
 			if (len(obj.args)):
