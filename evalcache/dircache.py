@@ -40,6 +40,10 @@ class DirCache:
         with open(os.path.join(self.dirpath, key), "rb") as fl:
             return pickle.load(fl)
 
+    def __delitem__(self, key):
+        os.remove(os.path.join(self.dirpath, key))
+        self.files.remove(key)
+
     def keys(self):
         return list(self.files)
 
