@@ -59,6 +59,14 @@ class Lazy:
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
 
+	def hashes_startswith(self, hash):
+		lst = [k for k in self.cache.keys()]
+		ret = []
+		for l in lst:
+			if l.startswith(hash):
+				ret.append(l)
+		return ret
+
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
 		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
