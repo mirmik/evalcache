@@ -47,9 +47,7 @@ class LazyFileObject(LazyObject):
 
     def unlazy(self):
         func = expand(self.generic)
-        spec = inspect.getfullargspec(func)
-
-        path = arg_with_name(self.generic.field, *args, **kwargs)
+        path = arg_with_name(self.generic.field, func, self.args, self.kwargs)
         
         if os.path.exists(path):
             os.remove(path)
