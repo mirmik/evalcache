@@ -525,6 +525,10 @@ def decache(obj, sts=True):
 	obj.__decache__ = sts
 
 
+def onuse(obj, sts=True):
+	obj.__unlazyonuse__ = sts
+
+
 def nocache(obj):
 	obj.__encache__ = False
 	obj.__decache__ = False
