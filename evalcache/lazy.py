@@ -357,9 +357,9 @@ def unlazy(obj):
 	
 	if obj.__lazybase__.diag:
 		if obj.__lazybase__.diag_values:
-			print(msg, obj.__lazyhexhash__, obj.__lazyvalue__)
+			print(msg, obj.__lazyhexhash__[:20] + "...", obj.__lazyvalue__)
 		else:
-			print(msg, obj.__lazyhexhash__)
+			print(msg, obj.__lazyhexhash__[:20] + "...")
 
 	#while isinstance(obj.__lazyvalue__, LazyObject):
 	#	setvalue(obj, expand(obj.__lazyvalue__))

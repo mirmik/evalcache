@@ -4,6 +4,8 @@ import evalcache.lazy
 from evalcache.lazy import expand, hashfuncs, updatehash_LazyObject, LazyObject, Lazy
 from evalcache.dircache import DirCache
 
+from evalcache.funcarg import arg_with_name
+
 import hashlib
 import inspect
 
@@ -47,17 +49,8 @@ class LazyFileObject(LazyObject):
         func = expand(self.generic)
         spec = inspect.getfullargspec(func)
 
-        if self.generic.field in self.kwargs:
-            path = self.kwargs[self.generic.field]
-
-        else:
-            for i in range(0, len(self.args)):
-                if spec.args[i] == self.generic.field:
-                    path = self.args[i]
-                    break
-            else:
-                print("ERROR: Argument {} don`t exist in wrapped_function".format(self.generic.field))
-
+        path = funcarg.arg_with_name(self.generic.field)
+        
         if os.path.exists(path):
             os.remove(path)
 
