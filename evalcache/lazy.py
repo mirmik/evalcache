@@ -51,6 +51,7 @@ class Lazy:
 		self.diag_values = diag_values
 		self.function_dump = function_dump
 		self.updatehash_profiling = updatehash_profiling
+		self.objects = {}
 
 		if cache is None:
 			if encache is not False: print("WARNING: Cache is None, but encache option setted")
@@ -59,13 +60,33 @@ class Lazy:
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
 
-	def hashes_startswith(self, hash):
+	def register(self, obj):
+		self.objects[obj.__lazyhexhash__] = obj
+
+	def cache_startswith(self, hash):
 		lst = [k for k in self.cache.keys()]
 		ret = []
 		for l in lst:
 			if l.startswith(hash):
 				ret.append(l)
 		return ret
+
+	def objects_startswith(self, hash):
+		lst = [k for k in self.objects.keys()]
+		ret = []
+		for l in lst:
+			if l.startswith(hash):
+				ret.append(self.objects[l])
+		return ret
+
+	def __getitem__(self, hash):
+		ret = self.objects_startswith(hash)
+		if len(ret) == 1:
+			return ret[0]
+		else:
+			print("WARNING: objects_startswith return is array with len {}".format(len(ret)))
+			return None
+
 
 	def lazyfile(self, field="path"):
 		"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
@@ -160,6 +181,8 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 		self.__lazyhash__ = m.digest()
 		self.__lazyhexhash__ = m.hexdigest()
+
+		self.__lazybase__.register(self)
 
 		if self.__lazybase__.fastdo and self.__lazyvalue__ is None:
 			unlazy(self)
