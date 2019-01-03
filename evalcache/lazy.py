@@ -67,6 +67,11 @@ class Lazy:
 				ret.append(l)
 		return ret
 
+	def lazyfile(self, field="path"):
+		"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
+		from evalcache.lazyfile import LazyFileMaker
+		return lambda func, hint=None: LazyFileMaker(self, func, field, hint)
+
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
 		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
