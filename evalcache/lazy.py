@@ -328,6 +328,8 @@ class LazyObject(object, metaclass = MetaLazyObject):
 			print("WARNING: Shadow unlazy method.")
 		return ret
 
+	def lazyinvoke(self, *args, **kwargs):
+		return lazyinvoke(self, *args, **kwargs)
 
 class NoExpand:
 	def __init__(self, lazyobj):
@@ -500,6 +502,16 @@ def updatehash_function(m, obj, lobj):
 		if lobj.__lazybase__.function_file:
 			updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
 
+def updatehash_instancemethod(m, obj, lobj):
+	if hasattr(obj, "__qualname__"):
+		updatehash_str(m, obj.__qualname__, lobj)
+	elif hasattr(obj, "__name__"):
+		updatehash_str(m, obj.__name__, lobj)
+
+	if hasattr(obj, "__module__") and obj.__module__:
+		updatehash_str(m, obj.__module__, lobj)
+		if lobj.__lazybase__.function_file:
+			updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
 
 # Table of hash functions for special types.
 hashfuncs = {
@@ -510,6 +522,9 @@ hashfuncs = {
 	list: updatehash_list,
 	dict: updatehash_dict,
 	types.FunctionType: updatehash_function,
+	"instancemethod": updatehash_instancemethod,
+	#types.BuiltinFunctionType: updatehash_function,
+	#types.BuiltinMethodType: updatehash_function,
 }
 
 
@@ -527,18 +542,20 @@ def updatehash(m, obj, lobj):
 	m -- hashlib-like algorithm instance.
 	obj -- hashable object
 	"""
-	if lobj.__lazybase__.updatehash_profiling:
+	if lobj is not None and lobj.__lazybase__.updatehash_profiling:
 		start = time.time()
 
 	if obj.__class__ in hashfuncs:
 		hashfuncs[obj.__class__](m, obj, lobj)
+	elif obj.__class__.__name__ in hashfuncs:
+		hashfuncs[obj.__class__.__name__](m, obj, lobj)
 	else:
 		if obj.__class__.__repr__ is object.__repr__:
 			print("WARNING: object of class {} uses common __repr__ method. Сache may not work correctly"
 				  .format(obj.__class__))
 		updatehash_str(m, repr(obj), lobj)
 
-	if lobj.__lazybase__.updatehash_profiling:
+	if lobj is not None and lobj.__lazybase__.updatehash_profiling:
 		end = time.time()
 		print("updatehash elapse for {}: {}".format(repr(obj), end - start))
 
@@ -604,16 +621,18 @@ def nocache(obj):
 def lazy_getattr(obj, attr, wrapped_obj):
 	"""LazyObject`s getattr implementation
 	
-	If gettatr return LazyObject method, we rebind it from expanded class object to his lazy object 
-	for strait hashchain supporting 
+	Deprecated:
+	###If gettatr return LazyObject method, we rebind it from expanded class object to his lazy object 
+	###for strait hashchain supporting 
+	We can use cls overload instead
 	"""
 
 	ret = getattr(obj, attr)
 	
-	if (isinstance(ret, functools.partial)
-			and isinstance(ret.func, LazyObject)
-			and len(ret.args) == 1):
-		return functools.partial(ret.func, wrapped_obj.obj)
+	#if (isinstance(ret, functools.partial)
+	#		and isinstance(ret.func, LazyObject)
+	#		and len(ret.args) == 1):
+	#	return functools.partial(ret.func, wrapped_obj.obj)
 
 	return ret
 
