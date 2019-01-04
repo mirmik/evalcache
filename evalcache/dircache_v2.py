@@ -92,12 +92,15 @@ class DirCache_v2:
 		self.prefixes_cache[prefix].remove(key)
 
 	def keys(self):
-		lst = []
+		ret = set()
 
-		for p in prefixes_cache:
-			lst.extend(list(prefixes_cache[p]))			
+		for p in self.prefixes:
+			self.update_prefix(p)
 
-		return list(lst)
+		for p in self.prefixes_cache:
+			ret = ret.union(self.prefixes_cache[p])
+
+		return list(ret)
 
 	def makePathTo(self, key):
 		"""Create path to hashable data with key"""
