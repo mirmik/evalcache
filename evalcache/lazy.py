@@ -89,11 +89,13 @@ class Lazy:
 			print("WARNING: objects_startswith return is array with len {}".format(len(ret)))
 			return None
 
+	def lazyfile(self, path="path"):
+		return self.file_creator(path)
 
-	def lazyfile(self, field="path"):
+	def file_creator(self, pathfield="path"):
 		"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
 		from evalcache.lazyfile import LazyFileMaker
-		return lambda func, hint=None: LazyFileMaker(self, func, field, hint)
+		return lambda func, hint=None: LazyFileMaker(self, func, pathfield, hint)
 
 	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
