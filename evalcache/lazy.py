@@ -38,6 +38,7 @@ class Lazy:
 			onplace=False, onuse=False, fastdo=False,
 			diag=False, diag_values=False, print_invokes=False, 
 			function_dump=True,
+			function_file=False,
 			updatehash_profiling=False):
 		self.cache = cache
 		self.algo = algo
@@ -50,6 +51,7 @@ class Lazy:
 		self.print_invokes = print_invokes
 		self.diag_values = diag_values
 		self.function_dump = function_dump
+		self.function_file = function_file
 		self.updatehash_profiling = updatehash_profiling
 		self.objects = {}
 
@@ -454,9 +456,10 @@ def updatehash_function(m, obj, lobj):
 	if lobj.__lazybase__.function_dump:
 		updatehash_str(m, inspect.getsource(obj), lobj)
 
-	if hasattr(obj, "__module__") and obj.__module__:
-		updatehash_str(m, obj.__module__, lobj)
-		updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
+	if lobj.__lazybase__.function_file:
+		if hasattr(obj, "__module__") and obj.__module__:
+			updatehash_str(m, obj.__module__, lobj)
+			updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
 
 
 # Table of hash functions for special types.
