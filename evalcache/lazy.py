@@ -92,14 +92,19 @@ class Lazy:
 	def lazyfile(self, path="path"):
 		return self.file_creator(path)
 
-	def file_creator(self, pathfield="path"):
+	def file_creator(self, pathfield="path", hint=None):
 		"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
 		from evalcache.lazyfile import LazyFileMaker
-		return lambda func, hint=None: LazyFileMaker(self, func, pathfield, hint)
+		return lambda func: LazyFileMaker(self, func, pathfield, hint)
 
-	def __call__(self, wrapped_object, hint=None):
+	def __call__(self, wrapped_object, hint=None, genopts=None):
 		"""Construct lazy wrap for target object."""
-		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
+		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint, genopts=genopts)
+
+	def lazy(self, hint=None, genopts=None, cls=None):
+		if cls is None: cls=LazyObject
+		return lambda wraped: cls(self, value=wraped, onplace=False, onuse=False, hint=hint, genopts=genopts)
+
 
 class LazyHash(Lazy):
 	"""Этот декоратор не использует кэш. Создаёт ленивые объекты, вычисляемые один раз."""
@@ -158,7 +163,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 	def __init__(
 				self, lazifier, generic=None, args=(), kwargs={}, 
-				encache=None, decache=None, onuse=None, value=None, hint=None):
+				encache=None, decache=None, onuse=None, value=None, hint=None, genopts=None):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
 		self.__decache__ = decache if decache is not None else self.__lazybase__.decache
@@ -169,6 +174,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.generic = generic
 		self.args = args
 		self.kwargs = kwargs
+		self.genopts = genopts
 		self.__lazyvalue__ = value
 
 		m = lazifier.algo()
@@ -200,7 +206,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		return lazyinvoke(self, lazy_getattr, (self, item, NoExpand(self)), encache = False, decache = False)
 	
 	#Arithmetic operators:
-	def __add__(self, oth):         return lazyinvoke(self, operator.__add__, (self, oth))
+	def __add__(self, oth):         return lazyinvoke(self, operator.__add__, 	   (self, oth))
 	def __sub__(self, oth):         return lazyinvoke(self, operator.__sub__,      (self, oth))
 	def __mul__(self, oth):         return lazyinvoke(self, operator.__mul__,      (self, oth))
 	def __floordiv__(self, oth):    return lazyinvoke(self, operator.__floordiv__, (self, oth))
@@ -308,7 +314,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 	def __delete__(self): pass
 
-	def unlazy(self):
+	def unlazy(self, debug=False):
 		"""Get a result of evaluation.
 
 		See .unlazy function for details.
@@ -317,7 +323,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		Technically, the evaluated object can define an "unlazy" method.
 		If so, we'll hide such the method. However since using the unlazy 
 		function is more convenient as the method, so this option was excluded."""
-		ret = unlazy(self)
+		ret = unlazy(self, debug)
 		if hasattr(ret, "unlazy"):
 			print("WARNING: Shadow unlazy method.")
 		return ret
@@ -331,7 +337,7 @@ class NoExpand:
 		return repr(self.obj)
 
 
-def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None):
+def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None, cls = LazyObject):
 	"""Логика порождающего вызова.
 
 	Если установлена опция onuse, происходит мгновенное раскрытие.
@@ -341,24 +347,50 @@ def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None)
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
 
-	lazyobj = LazyObject(obj.__lazybase__, generic, args, kwargs, encache, decache)		
+	if obj.genopts == None:
+		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)		
+	else:
+		if encache is not None or decache is not None:
+			print("Warning: endecache and obj.genopts in one object...")
+		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, **obj.genopts)			
+
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
 
-def lazydo(obj):
+def lazydo(obj, debug=False):
 	"""Perform evaluation.
 
 	We need expand all arguments and callable for support lazy trees.
 	Such we should expand result becourse it can be LazyObject (f.e. lazy functions in lazy functions)
 	"""
+	if debug:
+		print("__lazydo__")
+		print("\tobj.generic:", obj.generic)
+		print("\tobj.args:", obj.args)
+		print("\tobj.kwargs:", obj.kwargs)
+
 	func = expand(obj.generic)
+	if debug: print("\texpand generic:", func)
 	args = expand(obj.args)
+	if debug: print("\texpand args:", args)
 	kwargs = expand(obj.kwargs)
+	if debug: print("\texpand kwargs:", kwargs)
+	
+	#if isinstance(func, lazyoperator):
+	#	if debug: print("\tinstance is lazyoperator branch")
+	#	mnem = func.mnem
+	#	opattr = getattr(args[0], mnem)
+	#	if isinstance(opattr, LazyObject):
+	#		return opattr(*obj.args, **obj.kwargs).unlazy(debug)
+	#	else:
+	#		func = func.op
+	
 	result = expand(func(*args, **kwargs))
+	if debug: print("\texpand result:", result)
 	return result
 
 
-def unlazy(obj):
+def unlazy(obj, debug=False):
 	"""Get a result of evaluation.
 
 	This function searches for the result in local memory, and after that in cache.
@@ -367,6 +399,11 @@ def unlazy(obj):
 	If object has disabled __decache__ loading prevented.
 	"""
 	# If local context was setted we can return object imediatly
+	if debug:
+		print("unlazy")
+		print("decache:", obj.__decache__)
+		print("encache:", obj.__encache__)
+
 	if obj.__lazyheap__:
 		# Load from local context ...
 		if obj.generic is None:
@@ -386,7 +423,7 @@ def unlazy(obj):
 	# Object wasn't stored early. Evaluate it. Store it if not prevented.
 	else:
 		# Execute ...
-		setvalue(obj, lazydo(obj))
+		setvalue(obj, lazydo(obj, debug))
 		if obj.__encache__:
 			# with storing.
 			msg = 'save'
@@ -520,6 +557,8 @@ def print_tree(obj, t=0):
 		#print(__tree_tab*t, end=''); print("LazyObject:")
 		if (obj.generic):
 			print(__tree_tab*t, end='')
+			print("type: {}...\n".format(obj.__class__), end='')
+			print(__tree_tab*t, end='')
 			print("hash: {}...\n".format(obj.__lazyhexhash__[0:20]), end='')
 			print(__tree_tab*t, end='')
 			print("generic:\n", end='')
@@ -577,3 +616,11 @@ def lazy_getattr(obj, attr, wrapped_obj):
 		return functools.partial(ret.func, wrapped_obj.obj)
 
 	return ret
+
+#class lazyoperator:
+#	def __init__(self, op, mnem):
+#		self.op = op
+#		self.mnem = mnem
+
+#	def __repr__(self):
+#		return repr(self.op)
