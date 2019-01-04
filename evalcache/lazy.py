@@ -204,6 +204,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#Attribute control
 	def __getattr__(self, item): 
 		return lazyinvoke(self, lazy_getattr, (self, item, NoExpand(self)), encache = False, decache = False)
+		#return lazyinvoke(self, lazy_getattr, (self, item, NoExpand(self)), encache = False, decache = False)
 	
 	#Arithmetic operators:
 	def __add__(self, oth):         return lazyinvoke(self, operator.__add__, 	   (self, oth))
@@ -621,18 +622,16 @@ def nocache(obj):
 def lazy_getattr(obj, attr, wrapped_obj):
 	"""LazyObject`s getattr implementation
 	
-	Deprecated:
-	###If gettatr return LazyObject method, we rebind it from expanded class object to his lazy object 
-	###for strait hashchain supporting 
-	We can use cls overload instead
+	If gettatr return LazyObject method, we rebind it from expanded class object to his lazy object 
+	for strait hashchain supporting 
 	"""
 
 	ret = getattr(obj, attr)
 	
-	#if (isinstance(ret, functools.partial)
-	#		and isinstance(ret.func, LazyObject)
-	#		and len(ret.args) == 1):
-	#	return functools.partial(ret.func, wrapped_obj.obj)
+	if (isinstance(ret, functools.partial)
+			and isinstance(ret.func, LazyObject)
+			and len(ret.args) == 1):
+		return functools.partial(ret.func, wrapped_obj.obj)
 
 	return ret
 
