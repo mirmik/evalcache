@@ -456,9 +456,9 @@ def updatehash_function(m, obj, lobj):
 	if lobj.__lazybase__.function_dump:
 		updatehash_str(m, inspect.getsource(obj), lobj)
 
-	if lobj.__lazybase__.function_file:
-		if hasattr(obj, "__module__") and obj.__module__:
-			updatehash_str(m, obj.__module__, lobj)
+	if hasattr(obj, "__module__") and obj.__module__:
+		updatehash_str(m, obj.__module__, lobj)
+		if lobj.__lazybase__.function_file:
 			updatehash_str(m, sys.modules[obj.__module__].__file__, lobj)
 
 
