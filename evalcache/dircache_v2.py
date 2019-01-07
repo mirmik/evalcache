@@ -105,4 +105,4 @@ class DirCache_v2:
 	def makePathTo(self, key):
 		"""Create path to hashable data with key"""
 		self.update_prefix(self.key_prefix(key))
-		return os.path.join(self.dirpath, key_to_relpath(key))
+		return os.path.join(self.dirpath, self.key_to_relpath(key))

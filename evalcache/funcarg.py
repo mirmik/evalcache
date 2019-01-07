@@ -1,7 +1,8 @@
 import inspect
 
 def arg_with_name(name, func, args, kwargs):
-	spec = inspect.getfullargspec(func)
+	#spec = inspect.getfullargspec(func)
+	spec = inspect.getargspec(func)
 
 	if name in kwargs:
 		finded = kwargs[name]

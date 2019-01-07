@@ -95,7 +95,7 @@ class Lazy:
 	def file_creator(self, pathfield="path", hint=None):
 		"""Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
 		from evalcache.lazyfile import LazyFileMaker
-		return lambda func: LazyFileMaker(self, func, pathfield, hint)
+		return lambda func: LazyFileMaker(self, value=func, field=pathfield, hint=hint)
 
 	def __call__(self, wrapped_object, hint=None, genopts=None):
 		"""Construct lazy wrap for target object."""
@@ -125,7 +125,7 @@ class Memoize(Lazy):
 class MetaLazyObject(type):
 	"""LazyObject has metaclass for creation control. It uses for onplace expand option supporting"""
 
-	def __call__(cls, lazifier, *args, onplace = None, **kwargs):
+	def __call__(cls, lazifier, onplace = None, *args, **kwargs):
 		obj = cls.__new__(cls)
 		cls.__init__(obj, lazifier, *args, **kwargs)
 		
@@ -137,7 +137,8 @@ class MetaLazyObject(type):
 		else:
 			return obj
 
-class LazyObject(object, metaclass = MetaLazyObject):
+class LazyObject(object):
+	__metaclass__ = MetaLazyObject
 	"""Lazytree element's interface.
 
 	A lazy object provides a rather abstract interface. We can use attribute getting or operators to
@@ -351,11 +352,11 @@ def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None,
 		print("__lazyinvoke__", generic, args, kwargs)
 
 	if obj.genopts == None:
-		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)		
+		lazyobj = cls(lazifier=obj.__lazybase__, generic=generic, args=args, kwargs=kwargs, encache=encache, decache=decache)		
 	else:
 		if encache is not None or decache is not None:
 			print("Warning: endecache and obj.genopts in one object...")
-		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, **obj.genopts)			
+		lazyobj = cls(lazifier=obj.__lazybase__, generic=generic, args=args, kwargs=kwargs, **obj.genopts)			
 
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 

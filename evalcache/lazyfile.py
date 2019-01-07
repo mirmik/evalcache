@@ -1,3 +1,5 @@
+#coding:utf-8
+
 import evalcache
 import evalcache.lazy
 
@@ -31,12 +33,12 @@ class LazyFileMaker(LazyObject):
 	"""Обёртка - фабрика. Создаёт и тут же расскрывает объект ленивого файла"""
 
 	def __init__(self, lazyfier, value, field, hint=None):
-		LazyObject.__init__(self, lazyfier, value=value, hint=hint)
+		LazyObject.__init__(self, lazifier=lazyfier, value=value, hint=hint)
 		self.field = field
 		self.rawfunc = value
 
 	def __call__(self, *args, **kwargs):
-		lobj = LazyFileObject(self.__lazybase__, self, args, kwargs)
+		lobj = LazyFileObject(lazifier=self.__lazybase__, generic=self, args=args, kwargs=kwargs)
 		lobj.unlazy()
 		return lobj
 
