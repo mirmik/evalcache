@@ -12,6 +12,7 @@ import functools
 import math
 import time
 
+import evalcache.dircache_v2
 
 class Lazy:
 	"""Decorator for endpoint objects lazifying.
@@ -39,7 +40,8 @@ class Lazy:
 			diag=False, diag_values=False, print_invokes=False, 
 			function_dump=True,
 			function_file=False,
-			updatehash_profiling=False):
+			updatehash_profiling=False,
+			onstr=False, onrepr=False, onbool=False):
 		self.cache = cache
 		self.algo = algo
 		self.encache = encache
@@ -47,6 +49,9 @@ class Lazy:
 		self.diag = diag
 		self.onplace = onplace
 		self.onuse = onuse
+		self.onstr = onstr
+		self.onrepr = onrepr
+		self.onbool = onbool
 		self.fastdo = fastdo
 		self.print_invokes = print_invokes
 		self.diag_values = diag_values
@@ -58,6 +63,8 @@ class Lazy:
 		if cache is None:
 			if encache is not False: print("WARNING: Cache is None, but encache option setted")
 			if decache is not False: print("WARNING: Cache is None, but decache option setted")
+		elif isinstance(cache, str):
+			cache = evalcache.dircache_v2.DirCache_v2(cache)
 
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
@@ -283,7 +290,6 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#Type conversion:
 	#TODO: need undestand, what it should...
 	#def __nonzero__(self): return bool(unlazy(self))
-	#def __bool__(self): return bool(unlazy(self))
 	#def __int__(self): return int(unlazy(self))
 	#def __long__(self): return long(unlazy(self))
 	#def __float__(self): return float(unlazy(self))
@@ -292,17 +298,28 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#def __hex__(self): return hex(unlazy(self))
 	#def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
 	#def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+	def __bool__(self): 
+		if self.__lazybase__.onbool:
+			return bool(unlazy(self))
+		else:
+			return True
+
 	def __coerce__(self, oth): return None
 
 	#Type presentation
 	def __hash__(self): return int(binascii.hexlify(self.__lazyhash__), 16)
 	
 	def __str__(self): 
-		if self.__unlazyonuse__:
-			return lazyinvoke(self, str, (self,))
+		if self.__unlazyonuse__ or self.__lazybase__.onstr:
+			return str(unlazy(self))
 		else:
-			return repr(self)
-	#def __repr__(self): repr(unlazy(self)) # Standart repr for best debugging
+			return object.__repr__(self)
+	
+	def __repr__(self): 
+		if self.__lazybase__.onrepr:
+			return repr(unlazy(self))
+		else:
+			return object.__repr__(self)
 
 	#Descriptor:
 	#def __set__ --- Not supported
