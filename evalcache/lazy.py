@@ -437,8 +437,14 @@ def unlazy(obj, debug=False):
 	elif obj.__decache__ and obj.__lazyhexhash__ in obj.__lazybase__.cache:
 		# Load from cache.
 		msg = 'load'
-		setvalue(obj, obj.__lazybase__.cache[obj.__lazyhexhash__])
-		
+		try:
+			setvalue(obj, obj.__lazybase__.cache[obj.__lazyhexhash__])
+		except:
+			print("Warning: Incostistent pickling. Remove it from cache and reevaluate.")
+			msg="fail"
+			del obj.__lazybase__.cache[obj.__lazyhexhash__]
+			setvalue(obj, lazydo(obj, debug))
+			obj.__lazybase__.cache[obj.__lazyhexhash__] = obj.__lazyvalue__
 
 	# Object wasn't stored early. Evaluate it. Store it if not prevented.
 	else:
