@@ -64,7 +64,7 @@ class Lazy:
 			if encache is not False: print("WARNING: Cache is None, but encache option setted")
 			if decache is not False: print("WARNING: Cache is None, but decache option setted")
 		elif isinstance(cache, str):
-			cache = evalcache.dircache_v2.DirCache_v2(cache)
+			self.cache = evalcache.dircache_v2.DirCache_v2(cache)
 
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
