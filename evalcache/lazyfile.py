@@ -15,7 +15,7 @@ import os
 class LazyFile(Lazy):
 	"""Декоратор функций создания ленивых файлов."""
 
-	def __init__(self, cache=DirCache(".evalfile"), **kwargs):
+	def __init__(self, cache, **kwargs):
 		Lazy.__init__(self, cache, **kwargs)
 
 	def __call__(self, field="path"):
