@@ -41,7 +41,7 @@ class Lazy:
 			function_dump=True,
 			function_file=False,
 			updatehash_profiling=False,
-			onstr=False, onrepr=False, onbool=False):
+			onstr=False, onrepr=False, onbool=True):
 		self.cache = cache
 		self.algo = algo
 		self.encache = encache
