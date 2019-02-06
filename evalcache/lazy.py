@@ -256,12 +256,11 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		if self.__unlazyonuse__:
 			return lazyinvoke(self, operator.__ne__, (self,oth))
 		return self.__lazyhash__ != oth.__lazyhash__ 
-	#def __eq__(self, oth): 
-	#def __ne__(self, oth): 
-	#def __lt__(self, oth):
-	#def __le__(self, oth): 
-	#def __gt__(self, oth):
-	#def __ge__(self, oth): 
+	
+	def __lt__(self, oth): return lazyinvoke(self, operator.__lt__, (self,oth))
+	def __le__(self, oth): return lazyinvoke(self, operator.__le__, (self,oth))
+	def __gt__(self, oth): return lazyinvoke(self, operator.__gt__, (self,oth))
+	def __ge__(self, oth): return lazyinvoke(self, operator.__ge__, (self,oth))
 
 	#Unary operators:
 	def __pos__(self):      return lazyinvoke(self, operator.__pos__,      (self,))
