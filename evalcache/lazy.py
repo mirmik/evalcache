@@ -248,14 +248,14 @@ class LazyObject(object, metaclass = MetaLazyObject):
 	#Compare operators:
 	#Is not supported as lazy operations
 	def __eq__(self, oth):
-		if self.__unlazyonuse__:
-			return lazyinvoke(self, operator.__eq__, (self,oth))
-		return self.__lazyhash__ == oth.__lazyhash__ 
+		#if self.__unlazyonuse__:
+		return lazyinvoke(self, operator.__eq__, (self,oth))
+		#return self.__lazyhash__ == oth.__lazyhash__ 
 	
 	def __ne__(self, oth):
-		if self.__unlazyonuse__:
-			return lazyinvoke(self, operator.__ne__, (self,oth))
-		return self.__lazyhash__ != oth.__lazyhash__ 
+		#if self.__unlazyonuse__:
+		return lazyinvoke(self, operator.__ne__, (self,oth))
+		#return self.__lazyhash__ != oth.__lazyhash__ 
 	
 	def __lt__(self, oth): return lazyinvoke(self, operator.__lt__, (self,oth))
 	def __le__(self, oth): return lazyinvoke(self, operator.__le__, (self,oth))
