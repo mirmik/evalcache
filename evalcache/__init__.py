@@ -6,5 +6,3 @@ from evalcache.lazy import unlazy, encache, decache, nocache, print_tree
 from evalcache.lazyfile import LazyFile
 
 from evalcache.util import select
-
-__version__ = "1.9.1"

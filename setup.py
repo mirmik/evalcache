@@ -5,7 +5,7 @@ import evalcache
 
 setup(
 	name = 'evalcache',
-	version = evalcache.__version__,
+	version = "1.10.0",
 	packages = ['evalcache'],
 	author = 'mirmik',
 	author_email = 'mirmikns@yandex.ru',
