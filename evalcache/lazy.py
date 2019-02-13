@@ -104,13 +104,13 @@ class Lazy:
 		from evalcache.lazyfile import LazyFileMaker
 		return lambda func: LazyFileMaker(self, func, pathfield, hint)
 
-	def __call__(self, wrapped_object, hint=None, genopts=None):
+	def __call__(self, wrapped_object, hint=None):
 		"""Construct lazy wrap for target object."""
-		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint, genopts=genopts)
+		return LazyObject(self, value=wrapped_object, onplace=False, onuse=False, hint=hint)
 
-	def lazy(self, hint=None, genopts=None, cls=None):
+	def lazy(self, hint=None, cls=None):
 		if cls is None: cls=LazyObject
-		return lambda wraped: cls(self, value=wraped, onplace=False, onuse=False, hint=hint, genopts=genopts)
+		return lambda wraped: cls(self, value=wraped, onplace=False, onuse=False, hint=hint)
 
 
 class LazyHash(Lazy):
@@ -170,7 +170,7 @@ class LazyObject(object, metaclass = MetaLazyObject):
 
 	def __init__(
 				self, lazifier, generic=None, args=(), kwargs={}, 
-				encache=None, decache=None, onuse=None, value=None, hint=None, genopts=None):
+				encache=None, decache=None, onuse=None, value=None, hint=None):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
 		self.__decache__ = decache if decache is not None else self.__lazybase__.decache
@@ -181,7 +181,6 @@ class LazyObject(object, metaclass = MetaLazyObject):
 		self.generic = generic
 		self.args = args
 		self.kwargs = kwargs
-		self.genopts = genopts
 		self.__lazyvalue__ = value
 
 		m = lazifier.algo()
@@ -366,13 +365,7 @@ def lazyinvoke(obj, generic, args = [], kwargs = {}, encache=None, decache=None,
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
 
-	if obj.genopts == None:
-		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)		
-	else:
-		if encache is not None or decache is not None:
-			print("Warning: endecache and obj.genopts in one object...")
-		lazyobj = cls(obj.__lazybase__, generic, args, kwargs, **obj.genopts)			
-
+	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)		
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
 
