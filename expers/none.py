@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 
 import sys
+
 sys.path.insert(0, "..")
 
 import evalcache
-lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
+
+lazy = evalcache.Lazy(cache=evalcache.DirCache(".evalcache"))
+
 
 @lazy
 def foo():
-	return None
+    return None
+
 
 print(foo().unlazy())
 print(foo().__lazyhexhash__)

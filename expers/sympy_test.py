@@ -5,9 +5,9 @@ import numpy as np
 import math
 import evalcache
 
-lazy = evalcache.Lazy(evalcache.DirCache(".evalcache"), diag = True)
+lazy = evalcache.Lazy(evalcache.DirCache(".evalcache"), diag=True)
 
-pj1, psi, y0, gamma, gr= symbols("pj1 psi y0 gamma gr")
+pj1, psi, y0, gamma, gr = symbols("pj1 psi y0 gamma gr")
 
 ###################### Construct sympy expression #####################
 F = 2500
@@ -15,38 +15,39 @@ xright = 625
 re = 625
 y0 = 1650
 
-gr = 2*math.pi / 360
-#gamma = pi / 2
+gr = 2 * math.pi / 360
+# gamma = pi / 2
 
 xj1q = xright + re * (1 - cos(psi))
-yj1q = (xright + re) * tan(psi) - re * sin(psi) #+ y0
-pj1 =  sqrt(xj1q**2 + yj1q**2)
+yj1q = (xright + re) * tan(psi) - re * sin(psi)  # + y0
+pj1 = sqrt(xj1q ** 2 + yj1q ** 2)
 
 pj2 = pj1 + y0 * sin(psi)
-zj2 = (pj2**2)/4/F
+zj2 = (pj2 ** 2) / 4 / F
 
-asqrt = sqrt(pj2**2 + 4*F**2)
+asqrt = sqrt(pj2 ** 2 + 4 * F ** 2)
 
-xp2 = 2*F / asqrt
+xp2 = 2 * F / asqrt
 yp2 = pj2 / asqrt
 xp3 = yp2
 yp3 = -xp2
 
 xmpsi = 1295
 gmpsi = 106 * gr
-aepsi = 600 
+aepsi = 600
 bepsi = 125
 
-b = 0.5*(1-cos(pi * gamma / gmpsi))
+b = 0.5 * (1 - cos(pi * gamma / gmpsi))
 
 p1 = (
-	(gamma * xmpsi / gmpsi * xp2) * (1-b) 
-	+ (aepsi * xp2 * sin(gamma) + bepsi * yp2 * (1-cos(gamma)))*b + pj1
+    (gamma * xmpsi / gmpsi * xp2) * (1 - b)
+    + (aepsi * xp2 * sin(gamma) + bepsi * yp2 * (1 - cos(gamma))) * b
+    + pj1
 )
 #######################################################################
 
-#First lazy node. Simplify is long operation.
-#Sympy has very good representations for expressions 
+# First lazy node. Simplify is long operation.
+# Sympy has very good representations for expressions
 print("Expression:", repr(p1))
 print()
 
@@ -55,26 +56,28 @@ p1 = lazy(simplify)(p1)
 #########################################################################################
 ## Really don't need to lazify fast operations
 Na = 200
-angles = [t * 2 * math.pi / 360 / Na * 106 for t in range(0,Na+1)]
+angles = [t * 2 * math.pi / 360 / Na * 106 for t in range(0, Na + 1)]
 
 N = int(200)
-a = (np.arange(0,N+1) - N/2) * 90/360*2*math.pi/N
+a = (np.arange(0, N + 1) - N / 2) * 90 / 360 * 2 * math.pi / N
 #########################################################################################
+
 
 @lazy
 def genarray(angles, a, p1):
-	points = []
-	for i in range(0, len(angles)):
-		ex = p1.subs(gamma, angles[i])
-		func = lambdify(psi, ex, 'numpy') # returns a numpy-ready function
-		rads = func(a)
-		xs = rads*np.cos(a)
-		ys = rads*np.sin(a)
-		arr = np.column_stack((xs,ys,[i*2]*len(xs)))
-		points.append(arr)
-	return points
+    points = []
+    for i in range(0, len(angles)):
+        ex = p1.subs(gamma, angles[i])
+        func = lambdify(psi, ex, "numpy")  # returns a numpy-ready function
+        rads = func(a)
+        xs = rads * np.cos(a)
+        ys = rads * np.sin(a)
+        arr = np.column_stack((xs, ys, [i * 2] * len(xs)))
+        points.append(arr)
+    return points
 
-#Second lazy node.
+
+# Second lazy node.
 arr = genarray(angles, a, p1).unlazy()
 
 print("\nResult list:", arr.__class__, len(arr))

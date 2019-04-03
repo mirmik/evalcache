@@ -1,27 +1,32 @@
 #!/usr/bin/python3
 
 import sys
+
 sys.path.insert(0, "..")
 
 import evalcache
 import math
 
-#lazy = evalcache.Memoize(strategy="onuse", diag=True, print_invokes=True)
+# lazy = evalcache.Memoize(strategy="onuse", diag=True, print_invokes=True)
 lazy = evalcache.Memoize(onplace=False)
 
-@lazy 
+
+@lazy
 def foo():
-	return 1
+    return 1
 
-@lazy 
+
+@lazy
 def bar():
-	return 2
+    return 2
 
-@lazy 
+
+@lazy
 def gen(a):
-	return 3 + a
+    return 3 + a
 
-#a = lazy(2)
+
+# a = lazy(2)
 
 print(bar)
 
