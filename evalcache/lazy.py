@@ -657,7 +657,11 @@ def updatehash_function(m, obj, lobj):
         updatehash_str(m, obj.__name__, lobj)
 
     if lobj.__lazybase__.function_dump:
-        updatehash_str(m, inspect.getsource(obj), lobj)
+        # Pass inspection if sources is not available.
+        try:
+            updatehash_str(m, inspect.getsource(obj), lobj)
+        except:
+            pass
 
     if hasattr(obj, "__module__") and obj.__module__:
         updatehash_str(m, obj.__module__, lobj)
