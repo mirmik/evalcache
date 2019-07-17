@@ -605,7 +605,7 @@ def unlazy(obj, debug=False):
     return obj.__lazyvalue__
 
 
-def unlazy_if_need(obj):
+def unlazy_if_need(arg):
     return unlazy(arg) if isinstance(arg, LazyObject) else arg
 
 
