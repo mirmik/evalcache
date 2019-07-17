@@ -605,6 +605,10 @@ def unlazy(obj, debug=False):
     return obj.__lazyvalue__
 
 
+def unlazy_if_need(obj):
+    return unlazy(arg) if isinstance(arg, LazyObject) else arg
+
+
 def expand(arg):
     """Apply unlazy operation for argument or for all argument's items if need.
 	LazyObject as dictionary key can be used.
