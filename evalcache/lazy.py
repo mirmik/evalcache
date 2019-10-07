@@ -127,10 +127,15 @@ class Lazy:
             return None
 
     def lazyfile(self, path="path"):
+        print("lazy file method deprecated. use file_creator method instead")
         return self.file_creator(path)
 
-    def file_creator(self, pathfield="path", hint=None):
-        """Параметр указывает, в каком поле передаётся путь к создаваемому файлу"""
+    def file_creator(self, pathfield, hint=None):
+        """Decoretor for wrap LazyFile creator method. (see lazyfile.py)
+
+        pathfile -- name of argument field of path. Function must create 
+        file with that path. Undefined behavior otherwise.  
+        """
         from evalcache.lazyfile import LazyFileMaker
 
         return lambda func: LazyFileMaker(self, func, pathfield, hint)
