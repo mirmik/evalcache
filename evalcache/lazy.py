@@ -32,6 +32,9 @@ class Lazy:
 	print_invokes -- LazyObject invokes diagnostic output
 	function_dump -- use code dump for function hashing
 	updatehash_profiling -- updatehash diagnostic output
+    onstr - expand on __str__ operation
+    onrepr - expand on __repr__ operation
+    onbool - expand on __bool__ operation
 	"""
 
     def __init__(
