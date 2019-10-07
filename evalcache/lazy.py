@@ -614,7 +614,7 @@ def unlazy(obj, debug=False):
         try:
             # Try to load object value. Save in local context if success.
             value = obj.__lazybase__.cache[obj.__lazyhexhash__]
-            setvalue(obj, value)
+            set_lazyvalue(obj, value)
         except:
             print(
                 "Warning: Incostistent pickling. Remove it from cache and reevaluate."
@@ -626,7 +626,7 @@ def unlazy(obj, debug=False):
 
             # Try to reevaluate object. Save in local context if success.
             value = lazydo(obj, debug)
-            setvalue(obj, value)
+            set_lazyvalue(obj, value)
 
             # Replace broken object in cache
             obj.__lazybase__.cache[obj.__lazyhexhash__] = obj.__lazyvalue__
@@ -635,7 +635,7 @@ def unlazy(obj, debug=False):
     else:
         # Execute and save in local context.
         value = lazydo(obj, debug)
-        setvalue(obj, value)
+        set_lazyvalue(obj, value)
         
         # And store in cache if not prevented. 
         if obj.__encache__:
@@ -786,7 +786,7 @@ def updatehash(m, obj, lobj):
         print("updatehash elapse for {}: {}".format(repr(obj), end - start))
 
 
-def setvalue(obj, value):
+def set_lazyvalue(obj, value):
     obj.__lazyvalue__ = value
     obj.__lazyheap__ = True
 
