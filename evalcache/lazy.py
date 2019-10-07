@@ -592,12 +592,12 @@ def unlazy(obj, debug=False):
 	If object has disabled __encache__ storing prevented.
 	If object has disabled __decache__ loading prevented.
 	"""
-    # If local context was setted we can return object imediatly
     if debug:
         print("unlazy")
         print("decache:", obj.__decache__)
         print("encache:", obj.__encache__)
 
+    # If local context was setted we can return object imediatly
     if obj.__lazyheap__:
         # Load from local context ...
         if obj.generic is None:
@@ -607,7 +607,7 @@ def unlazy(obj, debug=False):
             # for early executed object.
             msg = "fget"
 
-    # Now searhes object in cache, if not prevented.
+    # Otherwise try searhes object in cache, if not prevented.
     elif obj.__decache__ and obj.__lazyhexhash__ in obj.__lazybase__.cache:
         # Load from cache.
         msg = "load"
@@ -639,9 +639,6 @@ def unlazy(obj, debug=False):
             print(msg, obj.__lazyhexhash__[:20] + "...", obj.__lazyvalue__)
         else:
             print(msg, obj.__lazyhexhash__[:20] + "...")
-
-    # while isinstance(obj.__lazyvalue__, LazyObject):
-    # 	setvalue(obj, expand(obj.__lazyvalue__))
 
     # And, anyway, here our object in obj.__lazyvalue__
     return obj.__lazyvalue__
