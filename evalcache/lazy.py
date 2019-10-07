@@ -95,10 +95,14 @@ class Lazy:
         if diag_values and not diag:
             print("WARNING: diag_values is True, but diag is False")
 
-    def register(self, obj):
+    def _register(self, obj):
+        """Index lazyobject created by this lazifier"""
+
         self.objects[obj.__lazyhexhash__] = obj
 
     def cache_startswith(self, hash):
+        """Найти в кеше все объекты, начинающиеся с определенного префикса"""
+
         lst = [k for k in self.cache.keys()]
         ret = []
         for l in lst:
@@ -107,6 +111,9 @@ class Lazy:
         return ret
 
     def objects_startswith(self, hash):
+        """Найти среди зарегистрированных в скрипте ленивых объектов, 
+        начинающиеся с определенного префикса"""
+       
         lst = [k for k in self.objects.keys()]
         ret = []
         for l in lst:
@@ -115,6 +122,8 @@ class Lazy:
         return ret
 
     def __getitem__(self, hash):
+        print("Lazy.__getitem__ is deprected. use objects_startswith or cache_startswith instead")
+
         ret = self.objects_startswith(hash)
         if len(ret) == 1:
             return ret[0]
@@ -277,7 +286,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
         self.__lazyhash__ = m.digest()
         self.__lazyhexhash__ = m.hexdigest()
 
-        self.__lazybase__.register(self)
+        self.__lazybase__._register(self)
 
         if self.__lazybase__.fastdo and self.__lazyvalue__ is None:
             unlazy(self)
