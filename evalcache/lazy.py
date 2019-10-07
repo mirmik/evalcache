@@ -18,7 +18,7 @@ import evalcache.dircache_v2
 class Lazy:
     """Decorator for endpoint objects lazifying.
 
-	Hash algorithm parameters:
+    Hash algorithm parameters:
     --------------------------
     algo -- hashing algorithm for keys making. (hashlib-like)
     function_dump -- use code dump for function hashing
@@ -32,7 +32,7 @@ class Lazy:
     fastdo -- evaluate or load lazy object`s value immediately after creation
     
     Expand policy arguments:
-    -------------------------
+    ------------------------
     onplace -- return expand result instead lazy object creation
     onuse -- expand lazy object on any methods invoking (or some other using variants)
     onstr -- expand on __str__ operation
