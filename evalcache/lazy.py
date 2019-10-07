@@ -625,7 +625,12 @@ def unlazy(obj, debug=False):
     # Object wasn't stored early. Evaluate it. Store it if not prevented.
     else:
         # Execute ...
-        setvalue(obj, lazydo(obj, debug))
+        value = lazydo(obj, debug)
+        
+        # Save value in lazy object context.
+        setvalue(obj, value)
+        
+        # And store and cache if not prevented. 
         if obj.__encache__:
             # with storing.
             msg = "save"
