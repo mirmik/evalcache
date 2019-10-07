@@ -123,12 +123,36 @@ class Lazy:
         return lambda func: LazyFileMaker(self, func, pathfield, hint)
 
     def __call__(self, wrapped_object, hint=None):
-        """Construct lazy wrap for target object."""
+        """Construct lazy wrap for target object.
+    
+        Detail:
+        -------
+        Этот вызов используется для явного создания ленивого объекта.
+        Поскольку создание явное, onplace и onuse не устанавливаются.
+        Основное назначение этого метода порождение генераторов
+        ленивых объектов. Было бы странно создать генератор, 
+        чтобы сразу его раскрыть.
+        """
         return LazyObject(
             self, value=wrapped_object, onplace=False, onuse=False, hint=hint
         )
 
     def lazy(self, hint=None, cls=None):
+        """Alternate method for construct lazy wrap (see __call__).
+
+        Detail:
+        -------
+        Этот метод-декоратор применяется, когда необходимо передать 
+        дополнительные опции в создаваемый ленивый объект.
+
+        Arguments:
+        ----------
+        cls - класс создаваемого ленивго объекта. Используется для
+              того, чтобы изменить поведение каких-либо методов
+              на уровне ленивого объекта.
+        hint - соль для хеш алгоритма.
+        """
+
         if cls is None:
             cls = LazyObject
         return lambda wraped: cls(
