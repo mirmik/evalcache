@@ -9,6 +9,9 @@ class DirCache_v2:
 	in target directory.
 	Second version store objects with directory prefix like git.
 
+    TODO: Оптимизировать множественные загрузки с помощью локального
+    хранилища загруженных объектов.
+
 	Arguments:
 	----------
 	dirpath - target directory path. If it isn't exists, we trying
