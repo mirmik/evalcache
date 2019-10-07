@@ -31,6 +31,7 @@ class Lazy:
 	diag_values -- add values print to cache diagnostic
 	print_invokes -- LazyObject invokes diagnostic output
 	function_dump -- use code dump for function hashing
+    function_file -- use file path as part of function hash (file pathes incompatible with pyinstaller) 
 	updatehash_profiling -- updatehash diagnostic output
     onstr - expand on __str__ operation
     onrepr - expand on __repr__ operation
