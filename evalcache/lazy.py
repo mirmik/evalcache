@@ -597,7 +597,7 @@ def unlazy(obj, debug=False):
         print("decache:", obj.__decache__)
         print("encache:", obj.__encache__)
 
-    # If local context was setted we can return object imediatly
+    # If local context was setted we can return object imediately
     if obj.__lazyheap__:
         # Load from local context ...
         if obj.generic is None:
@@ -637,7 +637,7 @@ def unlazy(obj, debug=False):
         value = lazydo(obj, debug)
         setvalue(obj, value)
         
-        # And store and cache if not prevented. 
+        # And store in cache if not prevented. 
         if obj.__encache__:
             # with storing.
             msg = "save"
