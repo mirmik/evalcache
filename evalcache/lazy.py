@@ -25,19 +25,19 @@ class Lazy:
     function_file -- use file path as part of function hash (file pathes incompatible with pyinstaller) 
 
     Cache and evaluation policy arguments:
-    -----------------------
+    --------------------------------------
     cache -- dict-like object, which stores and loads evaluation's results (f.e. DirCache or dict)
     encache -- default state of enabling cache storing
     decache -- default state of enabling cache loading
-    fastdo -- вычислять объект при создании ленивого объекта
+    fastdo -- evaluate or load lazy object`s value immediately after creation
     
     Expand policy arguments:
     -------------------------
-    onplace -- возвращать результат вычисления вместо ленивого объекта
-    onuse -- раскрывать ленивый объект при попытки его использования
-    onstr - expand on __str__ operation
-    onrepr - expand on __repr__ operation
-    onbool - expand on __bool__ operation
+    onplace -- return expand result instead lazy object creation
+    onuse -- expand lazy object on any methods invoking (or some other using variants)
+    onstr -- expand on __str__ operation
+    onrepr -- expand on __repr__ operation
+    onbool -- expand on __bool__ operation
     
     Diagnostic output arguments:
     ----------------------------
