@@ -18,25 +18,34 @@ import evalcache.dircache_v2
 class Lazy:
     """Decorator for endpoint objects lazifying.
 
-	Arguments:
-	----------
-	cache -- dict-like object, which stores and loads evaluation's results (f.e. DirCache or dict)
-	algo -- hashing algorithm for keys making. (hashlib-like)
-	encache -- default state of enabling cache storing
-	decache -- default state of enabling cache loading
-	onplace -- возвращать результат вычисления вместо ленивого объекта
-	onuse -- раскрывать ленивый объект при попытки его использования
-	fastdo -- вычислять объект при создании ленивого объекта
-	diag -- cache diagnostic output
-	diag_values -- add values print to cache diagnostic
-	print_invokes -- LazyObject invokes diagnostic output
-	function_dump -- use code dump for function hashing
+	Hash algorithm parameters:
+    --------------------------
+    algo -- hashing algorithm for keys making. (hashlib-like)
+    function_dump -- use code dump for function hashing
     function_file -- use file path as part of function hash (file pathes incompatible with pyinstaller) 
-	updatehash_profiling -- updatehash diagnostic output
+
+    Cache and evaluation policy arguments:
+    -----------------------
+    cache -- dict-like object, which stores and loads evaluation's results (f.e. DirCache or dict)
+    encache -- default state of enabling cache storing
+    decache -- default state of enabling cache loading
+    fastdo -- вычислять объект при создании ленивого объекта
+    
+    Expand policy arguments:
+    -------------------------
+    onplace -- возвращать результат вычисления вместо ленивого объекта
+    onuse -- раскрывать ленивый объект при попытки его использования
     onstr - expand on __str__ operation
     onrepr - expand on __repr__ operation
     onbool - expand on __bool__ operation
-	"""
+    
+    Diagnostic output arguments:
+    ----------------------------
+    diag -- cache diagnostic output
+    diag_values -- add values print to cache diagnostic
+    print_invokes -- LazyObject invokes diagnostic output
+    updatehash_profiling -- updatehash diagnostic output
+    """
 
     def __init__(
         self,
