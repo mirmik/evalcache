@@ -685,13 +685,14 @@ def expand(arg):
 
 def updatehash_list(m, obj, lobj):
     for i, e in enumerate(obj):
-        updatehash(m, "<splitter>", lobj)
+        updatehash_str(m, "<splitter>", lobj)
         updatehash(m, i, lobj)
         updatehash(m, e, lobj)
 
 
 def updatehash_dict(m, obj, lobj):
     for k, v in sorted(obj.items()):
+        updatehash_str(m, "<splitter>", lobj)
         updatehash(m, k, lobj)
         updatehash(m, v, lobj)
 
