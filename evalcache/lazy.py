@@ -578,15 +578,6 @@ def lazydo(obj, debug=False):
     if debug:
         print("\texpand kwargs:", kwargs)
 
-    # if isinstance(func, lazyoperator):
-    # 	if debug: print("\tinstance is lazyoperator branch")
-    # 	mnem = func.mnem
-    # 	opattr = getattr(args[0], mnem)
-    # 	if isinstance(opattr, LazyObject):
-    # 		return opattr(*obj.args, **obj.kwargs).unlazy(debug)
-    # 	else:
-    # 		func = func.op
-
     result = expand(func(*args, **kwargs))
     if debug:
         print("\texpand result:", result)
@@ -779,7 +770,7 @@ def updatehash(m, obj, lobj):
 	"""
     if lobj is not None and lobj.__lazybase__.updatehash_profiling:
         start = time.time()
-        
+
     updatehash_str(m, repr(obj.__class__), lobj)
 
     if obj.__class__ in hashfuncs:
@@ -875,12 +866,3 @@ def lazy_getattr(obj, attr, wrapped_obj):
         return functools.partial(ret.func, wrapped_obj.obj)
 
     return ret
-
-
-# class lazyoperator:
-# 	def __init__(self, op, mnem):
-# 		self.op = op
-# 		self.mnem = mnem
-
-# 	def __repr__(self):
-# 		return repr(self.op)
