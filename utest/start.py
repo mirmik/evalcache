@@ -249,6 +249,11 @@ class TestAtackStability(unittest.TestCase):
             nlazy("<class 'tuple'><splitter>01<splitter>110").__lazyhash__
         )
 
+        self.assertNotEqual(
+            nlazy(("<splitter>01<splitter>210,",)).__lazyhash__,
+            nlazy((1,10)).__lazyhash__
+        )
+
 def cont_test():
     nlazy = evalcache.Memoize(algo = hashlib.sha512)
     s = {}
