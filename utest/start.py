@@ -233,6 +233,22 @@ class TestOptions(unittest.TestCase):
         self.assertNotEqual(flazy_11, flazy_12)
         self.assertNotEqual(flazy_21, flazy_22)
 
+class TestAtackStability(unittest.TestCase):
+    def tearDown(self):
+        test_environment.clean_onplace_memoize()
+
+    def test_function_dump(self):
+        nlazy = evalcache.Lazy(
+            cache=evalcache.DirCache(test_environment.dircache_path),
+            function_dump=False,
+            onplace=True,
+        )
+        
+        self.assertNotEqual(
+            nlazy((1,10)).__lazyhash__,
+            nlazy("<class 'tuple'><splitter>01<splitter>110").__lazyhash__
+        )
+
 def cont_test():
     nlazy = evalcache.Memoize(algo = hashlib.sha512)
     s = {}

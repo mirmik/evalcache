@@ -684,7 +684,6 @@ def expand(arg):
 
 
 def updatehash_list(m, obj, lobj):
-    updatehash(m, obj.__class__, lobj)
     for i, e in enumerate(obj):
         updatehash(m, "<splitter>", lobj)
         updatehash(m, i, lobj)
@@ -777,6 +776,8 @@ def updatehash(m, obj, lobj):
 	m -- hashlib-like algorithm instance.
 	obj -- hashable object
 	"""
+    updatehash_str(m, repr(obj.__class__), lobj)
+    
     if lobj is not None and lobj.__lazybase__.updatehash_profiling:
         start = time.time()
 
