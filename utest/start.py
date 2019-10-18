@@ -9,6 +9,7 @@ import types
 import unittest
 import test_environment
 import evalcache
+import hashlib
 
 
 class A:
@@ -232,7 +233,22 @@ class TestOptions(unittest.TestCase):
         self.assertNotEqual(flazy_11, flazy_12)
         self.assertNotEqual(flazy_21, flazy_22)
 
+def cont_test():
+    nlazy = evalcache.Memoize(algo = hashlib.sha512)
+    s = {}
+
+    for i in range(0,100):
+        for j in range(0,100):
+            h = nlazy((i,j)).__lazyhash__
+
+            if h in s:
+                print("FAULT:", (i,j), "equal", s[h])
+                return
+
+            s[h] = (i,j)
 
 if __name__ == "__main__":
     test_environment.clean()
+    cont_test()
+
     unittest.main()

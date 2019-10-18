@@ -684,7 +684,10 @@ def expand(arg):
 
 
 def updatehash_list(m, obj, lobj):
-    for e in obj:
+    updatehash(m, obj.__class__, lobj)
+    for i, e in enumerate(obj):
+        updatehash(m, "<splitter>", lobj)
+        updatehash(m, i, lobj)
         updatehash(m, e, lobj)
 
 
