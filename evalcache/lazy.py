@@ -777,10 +777,10 @@ def updatehash(m, obj, lobj):
 	m -- hashlib-like algorithm instance.
 	obj -- hashable object
 	"""
-    updatehash_str(m, repr(obj.__class__), lobj)
-    
     if lobj is not None and lobj.__lazybase__.updatehash_profiling:
         start = time.time()
+        
+    updatehash_str(m, repr(obj.__class__), lobj)
 
     if obj.__class__ in hashfuncs:
         hashfuncs[obj.__class__](m, obj, lobj)
