@@ -1,6 +1,8 @@
 # EvalCache
 Lazy tree evaluation cache library.
 
+![](https://travis-ci.com/mirmik/evalcache.svg?branch=master)
+
 ## Brief
 The library implements a cache of dependent lazy calculations for working with clean, time-consuming computational tasks, such as symbolic transformations, geometric, numerical algorithms.
 
