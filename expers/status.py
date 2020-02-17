@@ -7,8 +7,9 @@ sys.path.insert(0, "..")
 import evalcache
 import math
 
-cache = evalcache.DirCache(".evalcache")
-cache.clean()
+#cache = evalcache.DirCache(".evalcache")
+cache = evalcache.dircache_v2.DirCache_v2(".evalcache")
+#cache.clean()
 
 lazy = evalcache.Lazy(
     cache=cache, status_notify=True

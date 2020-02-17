@@ -940,7 +940,7 @@ def _tree_objects(obj, arr):
 
 	arr.append(obj)
 
-	if obj.generic: _tree_objects(obj.generic, arr)
+	if obj.generic is not None: _tree_objects(obj.generic, arr)
 	for a in obj.args: _tree_objects(a, arr)
 	for a in obj.kwargs.values(): _tree_objects(a, arr)
 
@@ -957,12 +957,12 @@ def _tree_needeval(obj, arrs):
 		return
 
 	if obj.__lazyhexhash__ in obj.__lazybase__.cache:
-		arrs.toload(obj)
+		arrs.toload.append(obj)
 		return
 
 	arrs.toeval.append(obj)
 
-	if obj.generic: _tree_needeval(obj.generic, arrs)
+	if obj.generic is not None: _tree_needeval(obj.generic, arrs)
 	for a in obj.args: _tree_needeval(a, arrs)
 	for a in obj.kwargs.values(): _tree_needeval(a, arrs)
 
