@@ -620,7 +620,10 @@ def unlazy(obj, debug=False):
 			obj.__lazybase__.tree_evaluation_toplevel = obj
 			obj.__lazybase__.tree_evaluation_in_progress = True
 			obj.__lazybase__.start_tree_evaluation_callback(obj)
-		obj.__lazybase__.start_node_evaluation_callback(obj)
+		
+		obj.__lazybase__.start_node_evaluation_callback(
+			obj.__lazybase__.tree_evaluation_toplevel, 
+			obj)
 			
 	if debug:
 		print("unlazy")
@@ -683,7 +686,10 @@ def unlazy(obj, debug=False):
 			print(msg, obj.__lazyhexhash__[:20] + "...")
 
 	if obj.__lazybase__.status_notify:
-		obj.__lazybase__.fini_node_evaluation_callback(obj)
+		obj.__lazybase__.fini_node_evaluation_callback(
+			obj.__lazybase__.tree_evaluation_toplevel,
+			obj)
+		
 		if obj.__lazybase__.tree_evaluation_toplevel is obj:
 			obj.__lazybase__.tree_evaluation_in_progress = False
 			obj.__lazybase__.fini_tree_evaluation_callback(obj)
@@ -928,6 +934,52 @@ def execution_emulate_information(obj):
 	_execution_emulate_information(obj, dct)
 	return dct
 
+def _tree_objects(obj, arr):
+	if not isinstance(obj, LazyObject):
+		return
+
+	arr.append(obj)
+
+	if obj.generic: _tree_objects(obj.generic, arr)
+	for a in obj.args: _tree_objects(a, arr)
+	for a in obj.kwargs.values(): _tree_objects(a, arr)
+
+def tree_objects(obj):
+	arr = []
+	_tree_objects(obj, arr)
+	return set(arr)
+
+def _tree_needeval(obj, arrs):
+	if not isinstance(obj, LazyObject):
+		return
+
+	if obj.__lazyvalue__ is not None:
+		return
+
+	if obj.__lazyhexhash__ in obj.__lazybase__.cache:
+		arrs.toload(obj)
+		return
+
+	arrs.toeval.append(obj)
+
+	if obj.generic: _tree_needeval(obj.generic, arrs)
+	for a in obj.args: _tree_needeval(a, arrs)
+	for a in obj.kwargs.values(): _tree_needeval(a, arrs)
+
+def tree_needeval(obj):
+	class _result:
+		pass
+
+	arrs = _result()
+	arrs.toeval = []
+	arrs.toload = []
+	 
+	_tree_needeval(obj, arrs)
+
+	arrs.toeval = set(arrs.toeval)
+	arrs.toload = set(arrs.toload)
+
+	return arrs
 
 def encache(obj, sts=True):
 	obj.__encache__ = sts

@@ -8,26 +8,28 @@ import evalcache
 import math
 
 cache = evalcache.DirCache(".evalcache")
-#cache.clean()
+cache.clean()
 
 lazy = evalcache.Lazy(
-    cache=cache, status_notify=True, diag=True
+    cache=cache, status_notify=True
 )
 
-def stcb(obj):
-	print("stcb")
+def stcb(root):
+	arr = evalcache.lazy.tree_objects(root)
+	print("total:{}".format(len(arr)))
 
-	print(evalcache.lazy.collect_tree_information(obj))
-	print(evalcache.lazy.execution_emulate_information(obj))
+def sncb(root, obj):
+	arrs = evalcache.lazy.tree_needeval(root)
+	print("toload:{} toeval:{}".format(len(arrs.toload), len(arrs.toeval)))
 
-def sncb(obj):
-	print("sncb")
+def ftcb(root):
+	pass
+	#print("ftcb")
 
-def ftcb(obj):
-	print("ftcb")
-
-def fncb(obj):
-	print("fncb")
+def fncb(root, obj):
+	arrs = evalcache.lazy.tree_needeval(root)
+	print("toload:{} toeval:{}".format(len(arrs.toload), len(arrs.toeval)))
+	#print("fncb")
 
 lazy.set_start_tree_evaluation_callback(stcb)
 lazy.set_start_node_evaluation_callback(sncb)
