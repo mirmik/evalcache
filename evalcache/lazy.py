@@ -87,14 +87,8 @@ class Lazy:
 		self.status_notify = status_notify
 
 		if self.status_notify:
-			self.tree_evaluation_toplevel=None
-			self.tree_evaluation_in_progress=False
+			self.status_notify_enable(True)
 			
-			self.start_tree_evaluation_callback=lambda x: x
-			self.start_node_evaluation_callback=lambda x: x
-			self.fini_node_evaluation_callback=lambda x: x
-			self.fini_tree_evaluation_callback=lambda x: x
-
 		if cache is None:
 			if encache is not False:
 				print("WARNING: Cache is None, but encache option setted")
@@ -105,6 +99,18 @@ class Lazy:
 
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
+
+	def status_notify_enable(self, en):
+		self.status_notify = en
+
+		self.tree_evaluation_toplevel=None
+		self.tree_evaluation_in_progress=False
+			
+		self.start_tree_evaluation_callback=lambda x: x
+		self.start_node_evaluation_callback=lambda x: x
+		self.fini_node_evaluation_callback=lambda x: x
+		self.fini_tree_evaluation_callback=lambda x: x
+		
 
 	def set_start_tree_evaluation_callback(self, callback):
 		self.start_tree_evaluation_callback = callback
