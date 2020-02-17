@@ -899,6 +899,36 @@ def collect_tree_information(obj):
 	_collect_tree_information(obj, dct)
 	return dct
 
+def is_trivial(obj):
+	return obj.generic is None
+
+def _execution_emulate_information(obj, dct):
+	if not isinstance(obj, LazyObject):
+		return
+
+	if (evalcache.lazy.is_trivial(obj)):
+		return
+
+	if (obj.__lazyhexhash__ in obj.__lazybase__.cache):
+		dct["need_to_load"] += 1		
+		return
+
+	dct["need_to_do"] += 1
+
+	if obj.generic: _execution_emulate_information(obj.generic, dct)
+	for a in obj.args: _execution_emulate_information(a, dct)
+	for a in obj.kwargs.values(): _execution_emulate_information(a, dct)
+
+def execution_emulate_information(obj):
+	dct = {
+		"need_to_do": 0,
+		"need_to_load": 0
+	}
+
+	_execution_emulate_information(obj, dct)
+	return dct
+
+
 def encache(obj, sts=True):
 	obj.__encache__ = sts
 

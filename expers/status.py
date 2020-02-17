@@ -18,6 +18,7 @@ def stcb(obj):
 	print("stcb")
 
 	print(evalcache.lazy.collect_tree_information(obj))
+	print(evalcache.lazy.execution_emulate_information(obj))
 
 def sncb(obj):
 	print("sncb")
