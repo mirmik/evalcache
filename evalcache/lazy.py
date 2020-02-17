@@ -65,6 +65,7 @@ class Lazy:
 		onstr=False,
 		onrepr=False,
 		onbool=True,
+		status_notify=False,
 	):
 		self.cache = cache
 		self.algo = algo
@@ -83,6 +84,16 @@ class Lazy:
 		self.function_file = function_file
 		self.updatehash_profiling = updatehash_profiling
 		self.objects = {}
+		self.status_notify = status_notify
+
+		if self.status_notify:
+			self.tree_evaluation_toplevel=None
+			self.tree_evaluation_in_progress=False
+			
+			self.start_tree_evaluation_callback=lambda x: x
+			self.start_node_evaluation_callback=lambda x: x
+			self.fini_node_evaluation_callback=lambda x: x
+			self.fini_tree_evaluation_callback=lambda x: x
 
 		if cache is None:
 			if encache is not False:
@@ -94,6 +105,18 @@ class Lazy:
 
 		if diag_values and not diag:
 			print("WARNING: diag_values is True, but diag is False")
+
+	def set_start_tree_evaluation_callback(self, callback):
+		self.start_tree_evaluation_callback = callback
+
+	def set_start_node_evaluation_callback(self, callback):
+		self.start_node_evaluation_callback = callback
+
+	def set_fini_tree_evaluation_callback(self, callback):
+		self.fini_tree_evaluation_callback = callback
+
+	def set_fini_node_evaluation_callback(self, callback):
+		self.fini_node_evaluation_callback = callback
 
 	def _register(self, obj):
 		"""Index lazyobject created by this lazifier"""
@@ -592,6 +615,13 @@ def unlazy(obj, debug=False):
 	If object has disabled __encache__ storing prevented.
 	If object has disabled __decache__ loading prevented.
 	"""
+	if obj.__lazybase__.status_notify:
+		if obj.__lazybase__.tree_evaluation_in_progress is False:
+			obj.__lazybase__.tree_evaluation_toplevel = obj
+			obj.__lazybase__.tree_evaluation_in_progress = True
+			obj.__lazybase__.start_tree_evaluation_callback(obj)
+		obj.__lazybase__.start_node_evaluation_callback(obj)
+			
 	if debug:
 		print("unlazy")
 		print("decache:", obj.__decache__)
@@ -652,6 +682,12 @@ def unlazy(obj, debug=False):
 		else:
 			print(msg, obj.__lazyhexhash__[:20] + "...")
 
+	if obj.__lazybase__.status_notify:
+		obj.__lazybase__.fini_node_evaluation_callback(obj)
+		if obj.__lazybase__.tree_evaluation_toplevel is obj:
+			obj.__lazybase__.tree_evaluation_in_progress = False
+			obj.__lazybase__.fini_tree_evaluation_callback(obj)
+		
 	# And, anyway, here our object in obj.__lazyvalue__
 	return obj.__lazyvalue__
 
@@ -831,6 +867,37 @@ def print_tree(obj, t=0):
 		print(__tree_tab * t, end="")
 		print(obj)
 
+def _collect_tree_information(obj, dct):
+	if not isinstance(obj, LazyObject):
+		dct["fnodes"].append(obj)
+		return
+
+	if obj.generic is None:
+		dct["fnodes"].append(obj.__lazyvalue__)		
+		dct["trivial"] += 1
+	else:
+		dct["nontrivial"] += 1
+
+	dct["hashes"].append(obj.__lazyhexhash__)
+
+	if obj.__lazyhexhash__ in obj.__lazybase__.cache:
+		dct["incache"] += 1
+	
+	if obj.generic: _collect_tree_information(obj.generic, dct)
+	for a in obj.args: _collect_tree_information(a, dct)
+	for a in obj.kwargs.values(): _collect_tree_information(a, dct)
+
+def collect_tree_information(obj):
+	dct = {
+		"hashes" : [],
+		"fnodes" : [],
+		"incache" : 0,
+		"trivial" : 0,
+		"nontrivial" : 0
+	}
+
+	_collect_tree_information(obj, dct)
+	return dct
 
 def encache(obj, sts=True):
 	obj.__encache__ = sts
