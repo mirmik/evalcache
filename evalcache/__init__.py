@@ -6,4 +6,4 @@ from evalcache.lazy import unlazy, encache, decache, nocache, print_tree
 from evalcache.lazy import unlazy_if_need
 from evalcache.lazyfile import LazyFile
 
-from evalcache.util import select
+from evalcache.util import select, map, filter, reduce

@@ -828,8 +828,8 @@ def updatehash(m, obj, lobj):
 	else:
 		if obj.__class__.__repr__ is object.__repr__:
 			print(
-				"WARNING: object of class {} uses common __repr__ method. Сache may not work correctly".format(
-					obj.__class__
+				"WARNING: object of class {} uses common __repr__ method. Сache may not work correctly (repr:{})".format(
+					obj.__class__, repr(obj)
 				)
 			)
 		updatehash_str(m, repr(obj), lobj)
