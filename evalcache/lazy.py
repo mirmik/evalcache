@@ -9,6 +9,7 @@ import binascii
 import operator
 import inspect
 import functools
+import traceback
 import math
 import time
 
@@ -72,6 +73,7 @@ class Lazy:
 		self.encache = encache
 		self.decache = decache
 		self.diag = diag
+		self.diag_warning_backtrace=False
 		self.onplace = onplace
 		self.onuse = onuse
 		self.onstr = onstr
@@ -85,6 +87,7 @@ class Lazy:
 		self.updatehash_profiling = updatehash_profiling
 		self.objects = {}
 		self.status_notify = status_notify
+
 
 		if self.status_notify:
 			self.status_notify_enable(True)
@@ -832,6 +835,8 @@ def updatehash(m, obj, lobj):
 					obj.__class__, repr(obj)
 				)
 			)
+			if lobj.__lazybase__.diag_warning_backtrace:
+				traceback.print_stack()
 		updatehash_str(m, repr(obj), lobj)
 
 	if lobj is not None and lobj.__lazybase__.updatehash_profiling:
