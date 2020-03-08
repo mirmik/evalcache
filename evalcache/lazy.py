@@ -513,7 +513,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	# def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
 	def __bool__(self):
 		if self.__lazybase__.onbool:
-			return bool(unlazy(self))
+			return unlazy(lazyinvoke(self, bool, (self,)))
+			#return bool(unlazy(self))
 		else:
 			raise Exception("bool invoked on lazy object, but onbool option is disabled. Enable it or use unlazy manualy.")
 			#return True
