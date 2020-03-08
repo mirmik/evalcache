@@ -425,16 +425,11 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		return lazyinvoke(self, operator.__xor__, (oth, self))
 
 	# Compare operators:
-	# Is not supported as lazy operations
 	def __eq__(self, oth):
-		# if self.__unlazyonuse__:
 		return lazyinvoke(self, operator.__eq__, (self, oth))
-		# return self.__lazyhash__ == oth.__lazyhash__
 
 	def __ne__(self, oth):
-		# if self.__unlazyonuse__:
 		return lazyinvoke(self, operator.__ne__, (self, oth))
-		# return self.__lazyhash__ != oth.__lazyhash__
 
 	def __lt__(self, oth):
 		return lazyinvoke(self, operator.__lt__, (self, oth))
@@ -501,7 +496,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	# def __missing__(self, key): --- ???
 
 	# Type conversion:
-	# TODO: need undestand, what it should...
 	# def __nonzero__(self): return bool(unlazy(self))
 	def __int__(self): 		return cached_unary_operation(int, self)
 	def __long__(self): 	return cached_unary_operation(long, self)
