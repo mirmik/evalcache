@@ -329,6 +329,9 @@ class LazyObject(object, metaclass=MetaLazyObject):
 
 	# Attribute control
 	def __getattr__(self, item):
+		# Здесь мы перёдаём объект дважды. Один раз как самого себя, второй раз в обёртке.
+		# это делается затем, чтобы функция expand не потеряла информацию о ленивом объекте.
+		# Подробности, зачем это нужно смотри в lazy_getattr.
 		return lazyinvoke(
 			self,
 			lazy_getattr,
@@ -336,8 +339,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 			encache=False,
 			decache=False,
 		)
-		# return lazyinvoke(self, lazy_getattr, (self, item, NoExpand(self)), encache = False, decache = False)
-
+		
 	# Arithmetic operators:
 	def __add__(self, oth):
 		return lazyinvoke(self, operator.__add__, (self, oth))
