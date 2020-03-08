@@ -515,7 +515,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		if self.__lazybase__.onbool:
 			return bool(unlazy(self))
 		else:
-			return True
+			raise Exception("bool invoked on lazy object, but onbool option is disabled. Enable it or use unlazy manualy.")
+			#return True
 
 	def __coerce__(self, oth):
 		return None
