@@ -254,6 +254,39 @@ class TestAtackStability(unittest.TestCase):
             nlazy((1,10)).__lazyhash__
         )
 
+
+class TestUnpacking(unittest.TestCase):
+    def tearDown(self):
+        test_environment.clean_onplace_memoize()
+
+    def test_aaa(self):
+        nlazy = evalcache.Lazy(
+            cache=evalcache.DirCache(test_environment.dircache_path),
+            encache=False,
+        )
+
+        class Cls:
+            def get_three(self):
+                return 3
+
+            def __repr__(self):
+                return "Cls"
+
+            def __getitem__(self, i):
+                return i
+
+            def __len__(self):
+                return 2
+
+        @nlazy
+        def foo():
+            return Cls()
+
+        a, b = foo()
+        print(a.unlazy())
+
+
+
 def cont_test():
     nlazy = evalcache.Memoize(algo = hashlib.sha512)
     s = {}

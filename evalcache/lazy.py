@@ -478,6 +478,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 
 	# Container methods:
 	def __len__(self):
+		# Длина распаковывается, поскольку __len__ обязан возвращать целое.
 		return unlazy(lazyinvoke(self, len, (self,)))
 
 	def __getitem__(self, item):
@@ -488,6 +489,9 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	# def __setitem__(self, key, value) --- Not supported
 	# def __delitem__(self, key)--- Not supported
 	def __iter__(self):
+		# Длина генератора выносится как отдельный ленивый объект
+		# , поскольку часто используется для расчета корректности кода,
+		# например при распаковке кортежей.
 		return iter([self[i] for i in range(0, len(self))])
 
 	def __reversed__(self):
