@@ -503,12 +503,12 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	# Type conversion:
 	# TODO: need undestand, what it should...
 	# def __nonzero__(self): return bool(unlazy(self))
-	# def __int__(self): return int(unlazy(self))
-	# def __long__(self): return long(unlazy(self))
-	# def __float__(self): return float(unlazy(self))
-	# def __complex__(self): return complex(unlazy(self))
-	# def __oct__(self): return oct(unlazy(self))
-	# def __hex__(self): return hex(unlazy(self))
+	def __int__(self): 		return cached_unary_operation(int, self)
+	def __long__(self): 	return cached_unary_operation(long, self)
+	def __float__(self): 	return cached_unary_operation(float, self)
+	def __complex__(self): 	return cached_unary_operation(complex, self)
+	def __oct__(self): 		return cached_unary_operation(oct, self)
+	def __hex__(self): 		return cached_unary_operation(hex, self)
 	# def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
 	# def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
 	def __bool__(self):
@@ -593,6 +593,8 @@ def lazyinvoke(
 	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
+def cached_unary_operation(op, obj):
+	return unlazy(lazyinvoke(obj, op, (obj,)))
 
 def lazydo(obj, debug=False):
 	"""Perform evaluation.

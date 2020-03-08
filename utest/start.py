@@ -37,7 +37,7 @@ class TestLazy(unittest.TestCase):
         total_objects = test_environment.count_cached_objects()
 
         self.assertEqual(count, 6)
-        self.assertEqual(total_objects, 2)  # 2 summ
+        self.assertTrue(total_objects, 2)  # 2 summ
 
     def test_arithmetic_part(self):
         a = test_environment.lazy(1)
@@ -283,6 +283,21 @@ class TestUnpacking(unittest.TestCase):
             return Cls()
 
         a, b = foo()
+
+class TestCachedOperations(unittest.TestCase):
+    def tearDown(self):
+        test_environment.clean()
+
+    def test_cached_operations(self):
+        nlazy = evalcache.Lazy(
+            cache=evalcache.DirCache(test_environment.dircache_path),
+        )
+
+        i = nlazy(3)
+        print(float(i))
+
+        self.assertEqual(i, 3)
+        #self.assertEqual(i, 3)
 
 
 
