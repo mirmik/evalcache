@@ -283,7 +283,6 @@ class TestUnpacking(unittest.TestCase):
             return Cls()
 
         a, b = foo()
-        print(a.unlazy())
 
 
 
