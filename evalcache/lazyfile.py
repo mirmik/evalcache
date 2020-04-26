@@ -65,7 +65,7 @@ class LazyFileObject(LazyObject):
                 os.link(path_of_copy, path)
             except OSError as err:
                 if err.errno == 18:
-                    shutil.copyfile(path_of_copy, path)
+                    os.symlink(path_of_copy, path)
                 else:
                     raise err
         else:
