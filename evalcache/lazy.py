@@ -290,6 +290,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		onuse=None,
 		value=None,
 		hint=None,
+		prevent_fastdo=False
 	):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
@@ -321,7 +322,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		self.__lazybase__._register(self)
 
 		if self.__lazybase__.fastdo and self.__lazyvalue__ is None:
-			unlazy(self)
+			if not prevent_fastdo:
+				unlazy(self)
 
 	# Callable
 	def __call__(self, *args, **kwargs):

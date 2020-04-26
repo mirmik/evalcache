@@ -8,6 +8,7 @@ from evalcache.funcarg import arg_with_name
 
 import hashlib
 import inspect
+import shutil
 
 import os
 
@@ -46,7 +47,7 @@ class LazyFileObject(LazyObject):
 	логику раскрытия."""
 
     def __init__(self, *args, **kwargs):
-        LazyObject.__init__(self, *args, **kwargs)
+        LazyObject.__init__(self, *args, **kwargs, prevent_fastdo=True)
 
     def unlazy(self):
         func = self.generic.rawfunc
@@ -60,14 +61,26 @@ class LazyFileObject(LazyObject):
         if self.__lazyhexhash__ in self.__lazybase__.cache:
             if self.__lazybase__.diag:
                 print("rest {}...".format(self.__lazyhexhash__[:20]))
-            os.link(path_of_copy, path)
+            try:
+                os.link(path_of_copy, path)
+            except OSError as err:
+                if err.errno == 18:
+                    shutil.copyfile(path_of_copy, path)
+                else:
+                    raise err
         else:
             if self.__lazybase__.diag:
                 print("stor {}...".format(self.__lazyhexhash__[:20]))
             args = expand(self.args)
             kwargs = expand(self.kwargs)
             ret = func(*args, **kwargs)
-            os.link(path, path_of_copy)
+            try:
+                os.link(path, path_of_copy)
+            except OSError as err:
+                if err.errno == 18:
+                    shutil.copyfile(path, path_of_copy)
+                else:
+                    raise err
 
 
 hashfuncs[LazyFileMaker] = updatehash_LazyObject
