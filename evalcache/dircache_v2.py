@@ -41,6 +41,12 @@ class DirCache_v2:
             self.prefixes = set(lst)
             self.prefixes_cache = dict()
 
+        self._tmpdir = os.path.join(self.dirpath, "tmp")
+        if not os.path.exists(self._tmpdir):
+            os.mkdir(self._tmpdir)      
+
+        self.prefixes.remove("tmp")      
+
     def update_prefix(self, prefix):
         dirpath = os.path.join(self.dirpath, prefix)
         if not os.path.exists(dirpath):
@@ -109,3 +115,10 @@ class DirCache_v2:
         """Create path to hashable data with key"""
         self.update_prefix(self.key_prefix(key))
         return os.path.join(self.dirpath, self.key_to_relpath(key))
+
+    def tmpdir(self):
+        return self._tmpdir
+
+    def clean_tmp(self):
+        for l in os.listdir(self._tmpdir):
+            os.remove(os.path.join(self._tmpdir, l))
