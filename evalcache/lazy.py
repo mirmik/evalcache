@@ -67,7 +67,9 @@ class Lazy:
 		onrepr=False,
 		onbool=True,
 		status_notify=False,
+		pedantic=False
 	):
+		self.pedantic = pedantic
 		self.cache = cache
 		self.algo = algo
 		self.encache = encache
@@ -836,11 +838,17 @@ def updatehash(m, obj, lobj):
 		hashfuncs[obj.__class__.__name__](m, obj, lobj)
 	else:
 		if obj.__class__.__repr__ is object.__repr__:
-			print(
-				"WARNING: object of class {} uses common __repr__ method. Сache may not work correctly (repr:{})".format(
-					obj.__class__, repr(obj)
+			if lobj.__lazybase__.pedantic:
+				raise Exception(
+					"evalcache: Object of class {} uses common __repr__ method. Undefined hash function. (repr:{})".format(
+						obj.__class__, repr(obj))
+					)
+			else:
+				print(
+					"WARNING: object of class {} uses common __repr__ method. Сache may not work correctly (repr:{})".format(
+						obj.__class__, repr(obj)
+					)
 				)
-			)
 			if lobj.__lazybase__.diag_warning_backtrace:
 				traceback.print_stack()
 		updatehash_str(m, repr(obj), lobj)
