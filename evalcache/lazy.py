@@ -196,7 +196,7 @@ class Lazy:
 			self, value=wrapped_object, onplace=False, onuse=False, hint=hint
 		)
 
-	def lazy(self, hint=None, cls=None):
+	def lazy(self, hint=None, cls=None, transparent=False):
 		"""Alternate method for construct lazy wrap (see __call__).
 
 		Detail:
@@ -215,7 +215,7 @@ class Lazy:
 		if cls is None:
 			cls = LazyObject
 		return lambda wraped: cls(
-			self, value=wraped, onplace=False, onuse=False, hint=hint
+			self, value=wraped, onplace=False, onuse=False, hint=hint, transparent=transparent
 		)
 
 
@@ -290,7 +290,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		onuse=None,
 		value=None,
 		hint=None,
-		prevent_fastdo=False
+		prevent_fastdo=False,
+		transparent=False
 	):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
@@ -304,20 +305,26 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		self.kwargs = kwargs
 		self.__lazyvalue__ = value
 
-		m = lazifier.algo()
-		if generic is not None:
-			updatehash(m, generic, self)
-		if len(args):
-			updatehash(m, args, self)
-		if len(kwargs):
-			updatehash(m, kwargs, self)
-		if value is not None:
-			updatehash(m, value, self)
-		if hint is not None:
-			updatehash(m, hint, self)
-
-		self.__lazyhash__ = m.digest()
-		self.__lazyhexhash__ = m.hexdigest()
+		if not transparent:
+			m = lazifier.algo()
+			if generic is not None:
+				updatehash(m, generic, self)
+			if len(args):
+				updatehash(m, args, self)
+			if len(kwargs):
+				updatehash(m, kwargs, self)
+			if value is not None:
+				updatehash(m, value, self)
+			if hint is not None:
+				updatehash(m, hint, self)
+	
+			self.__lazyhash__ = m.digest()
+			self.__lazyhexhash__ = m.hexdigest()
+		else:
+			self.__lazyhash__ = 0
+			self.__lazyhexhash__ = ""
+			self.__encache__ = False
+			self.__decache__ = False
 
 		self.__lazybase__._register(self)
 
