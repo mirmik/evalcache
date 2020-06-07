@@ -183,7 +183,7 @@ class Lazy:
 
 		return lambda func: LazyFileMaker(self, func, pathfield, hint)
 
-	def __call__(self, wrapped_object, hint=None):
+	def __call__(self, wrapped_object, hint=None, transparent=False):
 		"""Construct lazy wrap for target object.
 	
 		Detail:
@@ -195,10 +195,11 @@ class Lazy:
 		чтобы сразу его раскрыть.
 		"""
 		return LazyObject(
-			self, value=wrapped_object, onplace=False, onuse=False, hint=hint
+			self, value=wrapped_object, onplace=False, onuse=False, 
+			hint=hint, transparent=transparent
 		)
 
-	def lazy(self, hint=None, cls=None, transparent=False):
+	def lazy(self, hint=None, cls=None):
 		"""Alternate method for construct lazy wrap (see __call__).
 
 		Detail:
@@ -217,7 +218,7 @@ class Lazy:
 		if cls is None:
 			cls = LazyObject
 		return lambda wraped: cls(
-			self, value=wraped, onplace=False, onuse=False, hint=hint, transparent=transparent
+			self, value=wraped, onplace=False, onuse=False, hint=hint
 		)
 
 
@@ -323,8 +324,9 @@ class LazyObject(object, metaclass=MetaLazyObject):
 			self.__lazyhash__ = m.digest()
 			self.__lazyhexhash__ = m.hexdigest()
 		else:
-			self.__lazyhash__ = 0
-			self.__lazyhexhash__ = ""
+			m = lazifier.algo()
+			self.__lazyhash__ = m.digest()
+			self.__lazyhexhash__ = m.hexdigest()
 			self.__encache__ = False
 			self.__decache__ = False
 
@@ -819,6 +821,16 @@ hashfuncs = {
 	# types.BuiltinMethodType: updatehash_function,
 }
 
+try:
+	import numpy
+
+	def updatehash_ndarray(m, obj, lobj):
+		return updatehash_list(m,obj,lobj)
+
+	hashfuncs[numpy.ndarray] = updatehash_ndarray
+
+except:
+	pass
 
 def updatehash(m, obj, lobj):
 	"""Update hash in hashlib-like algo with hashable object
