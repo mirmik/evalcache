@@ -3,10 +3,12 @@
 
 import evalcache
 import evalcache.dircache
+import shutil
 
 import os
 
 dircache_path = ".evalcache"
+dircache_path2 = ".evalcache2"
 
 lazy = evalcache.Lazy(cache=evalcache.dircache.DirCache(dircache_path))
 memoize = evalcache.Memoize(onplace=False)
@@ -18,6 +20,9 @@ def clean():
         os.remove("{}/{}".format(dircache_path, path))
     lazy.cache.files = set()
 
+def full_clean():
+	#shutil.rmtree(dircache_path, ignore_errors=False, onerror=None)
+	shutil.rmtree(dircache_path2, ignore_errors=False, onerror=None)
 
 def clean_memoize():
     memoize.cache = {}

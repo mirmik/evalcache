@@ -45,7 +45,8 @@ class DirCache_v2:
         if not os.path.exists(self._tmpdir):
             os.mkdir(self._tmpdir)      
 
-        self.prefixes.remove("tmp")      
+        if "tmp" in self.prefixes: 
+            self.prefixes.remove("tmp")      
 
     def update_prefix(self, prefix):
         dirpath = os.path.join(self.dirpath, prefix)

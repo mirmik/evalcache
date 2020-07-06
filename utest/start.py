@@ -300,6 +300,16 @@ class TestCachedOperations(unittest.TestCase):
         #self.assertEqual(i, 3)
 
 
+class TestDirCacheClean(unittest.TestCase):
+    def tearDown(self):
+        test_environment.clean()
+        test_environment.full_clean()
+
+    def test_cached_operations(self):
+        nlazy = evalcache.Lazy(
+            cache=evalcache.DirCache_v2(test_environment.dircache_path2),
+        )
+
 
 def cont_test():
     nlazy = evalcache.Memoize(algo = hashlib.sha512)
