@@ -851,8 +851,16 @@ def updatehash(m, obj, lobj):
 
 	updatehash_str(m, repr(obj.__class__), lobj)
 
-	if obj.__class__ in hashfuncs:
-		hashfuncs[obj.__class__](m, obj, lobj)
+	def find_class_as_instance(obj):
+		for cls in hashfuncs.keys():
+			if isinstance(cls, type) and isinstance(obj, cls):
+				return cls
+		return None
+
+	asclass = find_class_as_instance(obj)
+
+	if asclass is not None:
+		hashfuncs[asclass](m, obj, lobj)
 	elif obj.__class__.__name__ in hashfuncs:
 		hashfuncs[obj.__class__.__name__](m, obj, lobj)
 	else:
@@ -889,9 +897,9 @@ def print_tree(obj, t=0):
 	"""Print lazy tree in user friendly format."""
 	if isinstance(obj, LazyObject):
 		# print(__tree_tab*t, end=''); print("LazyObject:")
-		if obj.generic:
+		if obj.generic is not None:
 			print(__tree_tab * t, end="")
-			print("type: {}...\n".format(obj.__class__), end="")
+			print("type: {}\n".format(obj.__class__), end="")
 			print(__tree_tab * t, end="")
 			print("hash: {}...\n".format(obj.__lazyhexhash__[0:20]), end="")
 			print(__tree_tab * t, end="")
@@ -909,13 +917,13 @@ def print_tree(obj, t=0):
 			print("-------")
 		else:
 			print(__tree_tab * t, end="")
-			print(obj.__lazyvalue__)
+			print(repr(obj.__lazyvalue__))
 	elif isinstance(obj, list) or isinstance(obj, tuple):
 		for o in obj:
 			print_tree(o, t)
 	else:
 		print(__tree_tab * t, end="")
-		print(obj)
+		print(repr(obj))
 
 def _collect_tree_information(obj, dct):
 	if not isinstance(obj, LazyObject):
