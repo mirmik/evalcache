@@ -173,17 +173,21 @@ class Lazy:
 		print("lazy file method deprecated. use file_creator method instead")
 		return self.file_creator(path)
 
-	def file_creator(self, pathfield, hint=None):
-		"""Decoretor for wrap LazyFile creator method. (see lazyfile.py)
+	def file_creator(self, pathfield, hint=None, prevent_unwrap_in_child=None):
+		"""Decorator for wrap LazyFile creator method. (see lazyfile.py)
 
 		pathfile -- name of argument field of path. Function must create 
 		file with that path. Undefined behavior otherwise.  
 		"""
 		from evalcache.lazyfile import LazyFileMaker
 
-		return lambda func: LazyFileMaker(self, func, pathfield, hint)
+		return lambda func: LazyFileMaker(self, 
+			func, 
+			pathfield, 
+			hint,
+			prevent_unwrap_in_child=prevent_unwrap_in_child)
 
-	def __call__(self, wrapped_object, hint=None, transparent=False):
+	def __call__(self, wrapped_object, hint=None, transparent=False, prevent_unwrap_in_child=None):
 		"""Construct lazy wrap for target object.
 	
 		Detail:
@@ -196,10 +200,10 @@ class Lazy:
 		"""
 		return LazyObject(
 			self, value=wrapped_object, onplace=False, onuse=False, 
-			hint=hint, transparent=transparent
+			hint=hint, transparent=transparent, prevent_unwrap_in_child=prevent_unwrap_in_child
 		)
 
-	def lazy(self, hint=None, cls=None):
+	def lazy(self, hint=None, cls=None, prevent_unwrap_in_child=None):
 		"""Alternate method for construct lazy wrap (see __call__).
 
 		Detail:
@@ -218,7 +222,8 @@ class Lazy:
 		if cls is None:
 			cls = LazyObject
 		return lambda wraped: cls(
-			self, value=wraped, onplace=False, onuse=False, hint=hint
+			self, value=wraped, onplace=False, onuse=False, hint=hint,
+			prevent_unwrap_in_child=prevent_unwrap_in_child
 		)
 
 
@@ -294,7 +299,9 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		value=None,
 		hint=None,
 		prevent_fastdo=False,
-		transparent=False
+		transparent=False,
+		prevent_unwrap=None,
+		prevent_unwrap_in_child=None
 	):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
@@ -307,6 +314,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		self.args = args
 		self.kwargs = kwargs
 		self.__lazyvalue__ = value
+		self.__lazy_unwrap_prevent_list__ = prevent_unwrap
+		self.__lazy_unwrap_prevent_list_in_child__ = prevent_unwrap_in_child
 
 		if not transparent:
 			m = lazifier.algo()
@@ -338,7 +347,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 
 	# Callable
 	def __call__(self, *args, **kwargs):
-		return lazyinvoke(self, self, args, kwargs)
+		return lazyinvoke(self, self, args, kwargs, 
+			prevent = self.__lazy_unwrap_prevent_list_in_child__)
 
 	# Attribute control
 	def __getattr__(self, item):
@@ -588,7 +598,7 @@ class NoExpand:
 
 
 def lazyinvoke(
-	obj, generic, args=[], kwargs={}, encache=None, decache=None, cls=LazyObject
+	obj, generic, args=[], kwargs={}, encache=None, decache=None, cls=LazyObject, prevent=None
 ):
 	"""Логика порождающего вызова.
 
@@ -599,11 +609,35 @@ def lazyinvoke(
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
 
-	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache)
+	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache, prevent_unwrap=prevent)
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
 def cached_unary_operation(op, obj):
 	return unlazy(lazyinvoke(obj, op, (obj,)))
+
+def expand_args_kwargs(obj, func, debug = False):
+	args = expand(obj.args)
+	if debug:
+		print("\texpand args:", args)
+
+	kwargs = expand(obj.kwargs)
+	if debug:
+		print("\texpand kwargs:", kwargs)
+
+	if obj.__lazy_unwrap_prevent_list__ is not None:
+		for name in obj.__lazy_unwrap_prevent_list__:
+			argno = evalcache.funcarg.argument_number(name, func)
+			
+			if argno < len(args):
+				args[argno] = obj.args[argno]
+				continue
+
+			if name in kwargs:
+				kwargs[name] = obj.kwargs[name]
+				continue
+
+	return args, kwargs
+
 
 def lazydo(obj, debug=False):
 	"""Perform evaluation.
@@ -620,12 +654,8 @@ def lazydo(obj, debug=False):
 	func = expand(obj.generic)
 	if debug:
 		print("\texpand generic:", func)
-	args = expand(obj.args)
-	if debug:
-		print("\texpand args:", args)
-	kwargs = expand(obj.kwargs)
-	if debug:
-		print("\texpand kwargs:", kwargs)
+	
+	args, kwargs = expand_args_kwargs(obj, func, debug)
 
 	result = expand(func(*args, **kwargs))
 	if debug:

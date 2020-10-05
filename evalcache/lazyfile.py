@@ -31,13 +31,15 @@ class LazyFile(Lazy):
 class LazyFileMaker(LazyObject):
     """Обёртка - фабрика. Создаёт и тут же расскрывает объект ленивого файла"""
 
-    def __init__(self, lazyfier, value, field, hint=None):
-        LazyObject.__init__(self, lazyfier, value=value, hint=hint)
+    def __init__(self, lazyfier, value, field, hint=None, prevent_unwrap_in_child=None):
+        LazyObject.__init__(self, lazyfier, value=value, hint=hint, prevent_unwrap_in_child=prevent_unwrap_in_child)
         self.field = field
         self.rawfunc = value
 
     def __call__(self, *args, **kwargs):
-        lobj = LazyFileObject(self.__lazybase__, self, args, kwargs)
+        lobj = LazyFileObject(
+            self.__lazybase__, 
+            self, args, kwargs, prevent_unwrap=self.__lazy_unwrap_prevent_list_in_child__)
         lobj.unlazy()
         return lobj
 
@@ -52,6 +54,7 @@ class LazyFileObject(LazyObject):
     def unlazy(self):
         func = self.generic.rawfunc
         path = arg_with_name(self.generic.field, func, self.args, self.kwargs)
+        path = os.path.expanduser(path)
 
         if os.path.exists(path):
             os.remove(path)
@@ -71,9 +74,10 @@ class LazyFileObject(LazyObject):
         else:
             if self.__lazybase__.diag:
                 print("stor {}...".format(self.__lazyhexhash__[:20]))
-            args = expand(self.args)
-            kwargs = expand(self.kwargs)
+            
+            args, kwargs = evalcache.lazy.expand_args_kwargs(self, func)
             ret = func(*args, **kwargs)
+            
             try:
                 os.link(path, path_of_copy)
             except OSError as err:
