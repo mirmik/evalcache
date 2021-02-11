@@ -54,6 +54,7 @@ class Lazy:
 		algo=hashlib.sha256,
 		encache=True,
 		decache=True,
+		cached=None,
 		onplace=False,
 		onuse=False,
 		fastdo=False,
@@ -69,6 +70,10 @@ class Lazy:
 		status_notify=False,
 		pedantic=False
 	):
+		if cached is not None:
+			encache = cached
+			decache = cached
+
 		self.pedantic = pedantic
 		self.cache = cache
 		self.algo = algo
@@ -295,6 +300,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		kwargs={},
 		encache=None,
 		decache=None,
+		cached=None,
 		onuse=None,
 		value=None,
 		hint=None,
@@ -303,6 +309,10 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		prevent_unwrap=None,
 		prevent_unwrap_in_child=None
 	):
+		if cached is not None:
+			encache = cached
+			decache = cached
+
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
 		self.__decache__ = decache if decache is not None else self.__lazybase__.decache
@@ -598,13 +608,17 @@ class NoExpand:
 
 
 def lazyinvoke(
-	obj, generic, args=[], kwargs={}, encache=None, decache=None, cls=LazyObject, prevent=None
+	obj, generic, args=[], kwargs={}, encache=None, decache=None, cls=LazyObject, prevent=None, cached=None
 ):
 	"""Логика порождающего вызова.
 
 	Если установлена опция onuse, происходит мгновенное раскрытие.
 	В независимости от необходимости мгновенного раскрытия создаётся ленивый
 	объект, чтобы задействовать логику кэша."""
+
+	if cached is not None:
+		encache=cached
+		decache=cached
 
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
