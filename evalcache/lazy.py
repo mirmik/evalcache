@@ -203,7 +203,12 @@ class Lazy:
 			hint=hint, transparent=transparent, prevent_unwrap_in_child=prevent_unwrap_in_child
 		)
 
-	def lazy(self, hint=None, cls=None, prevent_unwrap_in_child=None):
+	def lazy(self, 
+			hint=None, 
+			cls=None, 
+			prevent_unwrap_in_child=None,
+			nocache=-1
+		):
 		"""Alternate method for construct lazy wrap (see __call__).
 
 		Detail:
@@ -223,8 +228,8 @@ class Lazy:
 			cls = LazyObject
 		return lambda wraped: cls(
 			self, value=wraped, onplace=False, onuse=False, hint=hint,
-			prevent_unwrap_in_child=prevent_unwrap_in_child
-		)
+			prevent_unwrap_in_child=prevent_unwrap_in_child,
+			nocache=nocache)
 
 
 class LazyHash(Lazy):
@@ -301,7 +306,8 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		prevent_fastdo=False,
 		transparent=False,
 		prevent_unwrap=None,
-		prevent_unwrap_in_child=None
+		prevent_unwrap_in_child=None,
+		nocache=-1 
 	):
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
@@ -309,6 +315,11 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		self.__unlazyonuse__ = onuse if onuse is not None else self.__lazybase__.onuse
 		self.__lazyhint__ = hint
 		self.__lazyheap__ = value is not None
+
+		self.__lazy_nocache__ = nocache
+		if nocache >= 0:
+			self.__encache__ = False
+			self.__decache__ = False
 
 		self.generic = generic
 		self.args = args
@@ -609,7 +620,10 @@ def lazyinvoke(
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
 
-	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache, prevent_unwrap=prevent)
+	# Механика подавления кеширования. Действует n уровней.
+	nocache = obj.__lazy_nocache__ - 1
+	
+	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache, prevent_unwrap=prevent, nocache=nocache)
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
 
 def cached_unary_operation(op, obj):
