@@ -11,6 +11,7 @@ import inspect
 import shutil
 
 import os
+import errno
 
 
 class LazyFile(Lazy):
@@ -51,6 +52,16 @@ class LazyFileObject(LazyObject):
     def __init__(self, *args, **kwargs):
         LazyObject.__init__(self, *args, **kwargs, prevent_fastdo=True)
 
+    def _link_or_copy(self, src, dst):
+        """Create hardlink if possible, otherwise copy across filesystems."""
+        try:
+            os.link(src, dst)
+        except OSError as err:
+            if err.errno == errno.EXDEV:
+                shutil.copy2(src, dst)
+            else:
+                raise err
+
     def unlazy(self):
         func = self.generic.rawfunc
         path = arg_with_name(self.generic.field, func, self.args, self.kwargs)
@@ -64,27 +75,14 @@ class LazyFileObject(LazyObject):
         if self.__lazyhexhash__ in self.__lazybase__.cache:
             if self.__lazybase__.diag:
                 print("rest {}...".format(self.__lazyhexhash__[:20]))
-            try:
-                os.link(path_of_copy, path)
-            except OSError as err:
-                if err.errno == 18:
-                    os.symlink(path_of_copy, path)
-                else:
-                    raise err
+            self._link_or_copy(path_of_copy, path)
         else:
             if self.__lazybase__.diag:
                 print("stor {}...".format(self.__lazyhexhash__[:20]))
             
             args, kwargs = evalcache.lazy.expand_args_kwargs(self, func)
-            ret = func(*args, **kwargs)
-            
-            try:
-                os.link(path, path_of_copy)
-            except OSError as err:
-                if err.errno == 18:
-                    shutil.copyfile(path, path_of_copy)
-                else:
-                    raise err
+            func(*args, **kwargs)
+            self._link_or_copy(path, path_of_copy)
 
 
 hashfuncs[LazyFileMaker] = updatehash_LazyObject

@@ -297,7 +297,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		lazifier,
 		generic=None,
 		args=(),
-		kwargs={},
+		kwargs=None,
 		encache=None,
 		decache=None,
 		cached=None,
@@ -312,6 +312,11 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		if cached is not None:
 			encache = cached
 			decache = cached
+
+		if args is None:
+			args = ()
+		if kwargs is None:
+			kwargs = {}
 
 		self.__lazybase__ = lazifier
 		self.__encache__ = encache if encache is not None else self.__lazybase__.encache
@@ -386,9 +391,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	def __floordiv__(self, oth):
 		return lazyinvoke(self, operator.__floordiv__, (self, oth))
 
-	def __div__(self, oth):
-		return lazyinvoke(self, operator.__div__, (self, oth))
-
 	def __truediv__(self, oth):
 		return lazyinvoke(self, operator.__truediv__, (self, oth))
 
@@ -428,9 +430,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 
 	def __rfloordiv__(self, oth):
 		return lazyinvoke(self, operator.__floordiv__, (oth, self))
-
-	def __rdiv__(self, oth):
-		return lazyinvoke(self, operator.__div__, (oth, self))
 
 	def __rtruediv__(self, oth):
 		return lazyinvoke(self, operator.__truediv__, (oth, self))
@@ -491,8 +490,9 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	def __invert__(self):
 		return lazyinvoke(self, operator.__invert__, (self,))
 
-	def __round__(self, n):
-		return lazyinvoke(self, operator.__round__, (self, n))
+	def __round__(self, ndigits=None):
+		args = (self,) if ndigits is None else (self, ndigits)
+		return lazyinvoke(self, round, args)
 
 	def __floor__(self):
 		return lazyinvoke(self, math.floor, (self,))
@@ -504,7 +504,7 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		return lazyinvoke(self, math.trunc, (self,))
 
 	# Augmented assignment
-	# This methods group are not supported
+	# Augmented assignment is intentionally not supported.
 
 	# Container methods:
 	def __len__(self):
@@ -516,8 +516,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 			self, operator.__getitem__, (self, item), encache=False, decache=False
 		)
 
-	# def __setitem__(self, key, value) --- Not supported
-	# def __delitem__(self, key)--- Not supported
 	def __iter__(self):
 		# Длина генератора выносится как отдельный ленивый объект
 		# , поскольку часто используется для расчета корректности кода,
@@ -527,19 +525,11 @@ class LazyObject(object, metaclass=MetaLazyObject):
 	def __reversed__(self):
 		return lazyinvoke(self, reversed, (self,))
 
-	# def __contains__(self, item): return LazyObject(self.__lazybase__, lambda x, i: contains(x, i), (self, item))
-	# def __missing__(self, key): --- ???
-
 	# Type conversion:
-	# def __nonzero__(self): return bool(unlazy(self))
 	def __int__(self): 		return cached_unary_operation(int, self)
-	def __long__(self): 	return cached_unary_operation(long, self)
 	def __float__(self): 	return cached_unary_operation(float, self)
 	def __complex__(self): 	return cached_unary_operation(complex, self)
-	def __oct__(self): 		return cached_unary_operation(oct, self)
-	def __hex__(self): 		return cached_unary_operation(hex, self)
-	# def __index__(self): return LazyObject(self.__lazybase__, lambda x: int(x), (self)) ???
-	# def __trunc__(self): return LazyObject(self.__lazybase__, lambda x: math.trunc(x), (self))
+	def __index__(self):	return cached_unary_operation(operator.index, self)
 	def __bool__(self):
 		if self.__lazybase__.onbool:
 			return unlazy(lazyinvoke(self, bool, (self,)))
@@ -547,9 +537,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 		else:
 			raise Exception("bool invoked on lazy object, but onbool option is disabled. Enable it or use unlazy manualy.")
 			#return True
-
-	def __coerce__(self, oth):
-		return None
 
 	# Type presentation
 	def __hash__(self):
@@ -568,7 +555,6 @@ class LazyObject(object, metaclass=MetaLazyObject):
 			return object.__repr__(self)
 
 	# Descriptor:
-	# def __set__ --- Not supported
 	def __get__(self, instance, cls):
 		"""With __get__ method we can use lazy decorator on class's methods"""
 		if (instance is not None) and isinstance(
@@ -608,7 +594,7 @@ class NoExpand:
 
 
 def lazyinvoke(
-	obj, generic, args=[], kwargs={}, encache=None, decache=None, cls=LazyObject, prevent=None, cached=None
+	obj, generic, args=None, kwargs=None, encache=None, decache=None, cls=LazyObject, prevent=None, cached=None
 ):
 	"""Логика порождающего вызова.
 
@@ -622,6 +608,11 @@ def lazyinvoke(
 
 	if obj.__lazybase__.print_invokes:
 		print("__lazyinvoke__", generic, args, kwargs)
+
+	if args is None:
+		args = ()
+	if kwargs is None:
+		kwargs = {}
 
 	lazyobj = cls(obj.__lazybase__, generic, args, kwargs, encache, decache, prevent_unwrap=prevent)
 	return lazyobj.unlazy() if obj.__unlazyonuse__ else lazyobj
