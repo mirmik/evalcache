@@ -5,6 +5,7 @@ README.md
 setup.py
 tools/*
 expers/*
+.github/workflows/ci.yml
 
 [TREE]
 evalcache/*
@@ -14,3 +15,4 @@ README.md
 setup.py
 tools/*
 expers/*
+.github/workflows/ci.yml
