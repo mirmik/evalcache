@@ -9,7 +9,7 @@ import evalcache.lazyfile
 
 # lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"), encache=False, decache=False)
 # lazy = evalcache.Memoize()
-lazyfile = evalcache.lazyfile.LazyFile(diag=True)
+lazyfile = evalcache.lazyfile.LazyFile(cache=evalcache.DirCache(".evalcache"), diag=True)
 
 
 @lazyfile(field="path")
