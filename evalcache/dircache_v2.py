@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import tempfile
 
 
 class DirCache_v2:
@@ -32,40 +33,37 @@ class DirCache_v2:
 
     def __init__(self, dirpath):
         self.dirpath = dirpath
-        if not os.path.exists(dirpath):
-            os.mkdir(dirpath)
-            self.prefixes = set()
-            self.prefixes_cache = dict()
-        else:
-            lst = os.listdir(dirpath)
-            self.prefixes = set(lst)
-            self.prefixes_cache = dict()
+        os.makedirs(dirpath, exist_ok=True)
+        self.prefixes = set()
+        self.prefixes_cache = dict()
 
         self._tmpdir = os.path.join(self.dirpath, "tmp")
-        if not os.path.exists(self._tmpdir):
-            os.mkdir(self._tmpdir)      
+        os.makedirs(self._tmpdir, exist_ok=True)
+        self._update_prefixes()
 
-        if "tmp" in self.prefixes: 
-            self.prefixes.remove("tmp")      
+    def _update_prefixes(self):
+        self.prefixes = {
+            name for name in os.listdir(self.dirpath)
+            if name != "tmp" and os.path.isdir(os.path.join(self.dirpath, name))
+        }
 
     def update_prefix(self, prefix):
         dirpath = os.path.join(self.dirpath, prefix)
-        if not os.path.exists(dirpath):
-            os.mkdir(dirpath)
-            self.prefixes_cache[prefix] = set()
-        else:
-            lst = [prefix + rkey for rkey in os.listdir(dirpath)]
-            self.prefixes_cache[prefix] = set(lst)
+        os.makedirs(dirpath, exist_ok=True)
+        self.prefixes.add(prefix)
+        lst = [prefix + rkey for rkey in os.listdir(dirpath)]
+        self.prefixes_cache[prefix] = set(lst)
 
     def __contains__(self, key):
         prefix = self.key_prefix(key)
-        if prefix not in self.prefixes:
-            return False
-
-        if prefix not in self.prefixes_cache:
-            self.update_prefix(prefix)
-
-        return key in self.prefixes_cache[prefix]
+        path = os.path.join(self.dirpath, self.key_to_relpath(key))
+        exists = os.path.isfile(path)
+        if exists:
+            self.prefixes.add(prefix)
+            self.prefixes_cache.setdefault(prefix, set()).add(key)
+        elif prefix in self.prefixes_cache:
+            self.prefixes_cache[prefix].discard(key)
+        return exists
 
     def __setitem__(self, key, value):
         prefix = self.key_prefix(key)
@@ -73,37 +71,40 @@ class DirCache_v2:
         if prefix not in self.prefixes_cache:
             self.update_prefix(prefix)
 
-        with open(os.path.join(self.dirpath, self.key_to_relpath(key)), "wb") as fl:
-            pickle.dump(value, fl)
+        path = os.path.join(self.dirpath, self.key_to_relpath(key))
+        fd, tmppath = tempfile.mkstemp(dir=self._tmpdir)
+        try:
+            with os.fdopen(fd, "wb") as fl:
+                pickle.dump(value, fl)
+            os.replace(tmppath, path)
+        finally:
+            try:
+                os.remove(tmppath)
+            except FileNotFoundError:
+                pass
         self.prefixes_cache[prefix].add(key)
 
     def __getitem__(self, key):
-        prefix = self.key_prefix(key)
-
-        if prefix not in self.prefixes_cache:
-            raise KeyError
-
-        if key not in self.prefixes_cache[prefix]:
-            raise KeyError
-
-        with open(os.path.join(self.dirpath, self.key_to_relpath(key)), "rb") as fl:
-            return pickle.load(fl)
+        path = os.path.join(self.dirpath, self.key_to_relpath(key))
+        try:
+            with open(path, "rb") as fl:
+                return pickle.load(fl)
+        except FileNotFoundError:
+            raise KeyError(key)
 
     def __delitem__(self, key):
         prefix = self.key_prefix(key)
-
-        if prefix not in self.prefixes_cache:
-            raise KeyError
-
-        if key not in self.prefixes_cache[prefix]:
-            raise KeyError
-
-        os.remove(os.path.join(self.dirpath, self.key_to_relpath(key)))
-        self.prefixes_cache[prefix].remove(key)
+        try:
+            os.remove(os.path.join(self.dirpath, self.key_to_relpath(key)))
+        except FileNotFoundError:
+            raise KeyError(key)
+        if prefix in self.prefixes_cache:
+            self.prefixes_cache[prefix].discard(key)
 
     def keys(self):
         ret = set()
 
+        self._update_prefixes()
         for p in self.prefixes:
             self.update_prefix(p)
 
