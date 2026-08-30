@@ -60,5 +60,51 @@ lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
 ### Articles
 [Дисковое кэширование деревьев ленивых вычислений](https://habr.com/post/422937/)
 
+## Typed expression kernel (v2)
+
+The legacy `LazyObject` API remains available for existing applications. New
+domain libraries can instead keep a typed `Expression[T]` inside their own
+public value objects and resolve it through an `Evaluator`:
+
+```python
+import evalcache
+
+integer = evalcache.ResultSpec.for_type(int)
+evaluator = evalcache.Evaluator(
+    mode=evalcache.EvaluationMode.DEFERRED,
+    cache_policy=evalcache.CachePolicy.disabled(),
+)
+expression = evaluator.expression(
+    lambda left, right: left + right,
+    result=integer,
+    args=(20, 22),
+    operation_id="example.add",
+    operation_version="1",
+)
+assert evaluator.evaluate(expression) == 42
+```
+
+`Expression.create` snapshots the computation structure and calculates a
+deterministic digest. Arguments must be immutable and deterministically
+hashable; application types register an encoder with `HashRegistry` or expose
+`__evalcache_key__() -> bytes`. Lists, tuples, sets, frozensets, and mappings
+retain their container type during resolution.
+
+Persistent caching is split into three explicit contracts:
+
+- `CachePolicy` controls reads, writes, namespace, and corrupt-record recovery;
+- `CacheStore` stores versioned records (`MemoryCacheStore` and
+  `MappingCacheStore` are supplied);
+- each `ResultSpec[T]` owns a `Serializer[T]`, which may emit named binary
+  `Artifact` values alongside its payload.
+
+The default `PickleSerializer` is only suitable for cache directories trusted
+by the current user. Use a non-executable serializer whenever cache data can
+cross a trust boundary.
+
+`legacy_expression` is a temporary migration bridge. It treats a v1
+`LazyObject` graph as one opaque leaf and validates the resolved result; it is
+not the extension API for new code.
+
 ### Contact
 mirmik(mirmikns@yandex.ru)

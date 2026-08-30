@@ -7,6 +7,7 @@ setup(
     name="evalcache",
     version="1.15.1",
     packages=["evalcache"],
+    package_data={"evalcache": ["py.typed"]},
     author="mirmik",
     author_email="mirmikns@yandex.ru",
     description="Lazy computing tree cache library",
