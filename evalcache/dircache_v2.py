@@ -29,7 +29,7 @@ class DirCache_v2:
 
     @staticmethod
     def key_to_relpath(key):
-        return "{}/{}".format(DirCache_v2.key_prefix(key), key[2:])
+        return os.path.join(DirCache_v2.key_prefix(key), key[2:])
 
     def __init__(self, dirpath):
         self.dirpath = dirpath

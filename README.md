@@ -60,29 +60,126 @@ lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
 ### Articles
 [Дисковое кэширование деревьев ленивых вычислений](https://habr.com/post/422937/)
 
-## Typed expression kernel (v2)
+## Decorated computations and typed expressions (v2)
 
-The legacy `LazyObject` API remains available for existing applications. New
-domain libraries can instead keep a typed `Expression[T]` inside their own
-public value objects and resolve it through an `Evaluator`:
+V2 supports the original decorator-first workflow while using typed expression
+nodes internally. A decorated call always returns `Deferred[T]`; immediate
+mode evaluates it eagerly but retains the same public wrapper type:
 
 ```python
 import evalcache
 
-integer = evalcache.ResultSpec.for_type(int)
 evaluator = evalcache.Evaluator(
-    mode=evalcache.EvaluationMode.DEFERRED,
     cache_policy=evalcache.CachePolicy.disabled(),
 )
-expression = evaluator.expression(
-    lambda left, right: left + right,
-    result=integer,
-    args=(20, 22),
-    operation_id="example.add",
-    operation_version="1",
-)
-assert evaluator.evaluate(expression) == 42
+
+@evaluator
+def add(left: int, right: int) -> int:
+    return left + right
+
+result = add(20, 22)
+assert isinstance(result, evalcache.Deferred)
+assert result.compute() == 42
+assert result.unlazy() == 42
 ```
+
+The return annotation supplies the default result contract. An unannotated
+operation accepts a dynamic result, while `@evaluator.operation(result=...)`
+can provide an explicit runtime type or `ResultSpec`.
+
+The extended decorator form keeps cache identity and result guarantees close
+to the operation definition:
+
+```python
+@evaluator.operation(
+    operation_id="my-project.build-mesh",
+    operation_version="3",
+    result=Mesh,
+)
+def build_mesh(source: Source) -> Mesh:
+    ...
+```
+
+Keep `operation_id` stable while the meaning of an operation remains stable,
+and increment `operation_version` when old cached results must no longer be
+reused. Other useful options are an explicit `ResultSpec` with a validator or
+custom serializer, `hash_registry` for domain arguments, and
+`cacheable=False` for operations that must not use persistent cache. See
+`expers/v2_advanced_decorators.py` for an executable example combining these
+options.
+
+Module-level `@evalcache.operation` looks up the default evaluator when the
+decorated function is called. Policies can therefore be configured once for
+small scripts and experiments:
+
+```python
+store = evalcache.MemoryCacheStore()
+evalcache.configure(cache_store=store)
+
+@evalcache.operation
+def square(value: int) -> int:
+    return value * value
+
+assert square(12).compute() == 144
+```
+
+Use `@evaluator` for explicit policy ownership, `evalcache.configure(...)` for
+process-wide defaults, or `evalcache.using_evaluator(...)` for a temporary
+default. Deferred values from different evaluators cannot be mixed in one
+graph.
+
+`Deferred` supports operations whose lazy meaning is unambiguous. They create
+new expression nodes and do not materialize their operands:
+
+```python
+@evaluator
+def load_values() -> tuple[int, ...]:
+    return (6, -4, 3)
+
+values = load_values()
+result = 10 + values[0] * 2 - abs(values[1])
+assert result.compute() == 18
+```
+
+Supported operations are unary `+`, `-`, `abs`, and `~`; arithmetic `+`, `-`,
+`*`, `/`, `//`, `%`, and `**`; matrix multiplication `@`; bitwise `&`, `|`,
+`^`, `<<`, and `>>`; and indexing with `[]`. Reflected forms such as
+`10 - deferred` are supported as well. Comparisons and Python control-flow
+boundaries are deliberately separate: comparisons, truth testing, and implicit
+iteration raise `TypeError`, so call `compute()` explicitly when a concrete
+value is required.
+
+### File artifacts
+
+A file-producing computation can return immutable contents without making its
+destination path part of the expression identity:
+
+```python
+@evaluator.operation(
+    operation_id="my-project.render-report",
+    operation_version="1",
+    result=evalcache.file_artifact_result(
+        type_id="my-project.text-report.v1",
+    ),
+)
+def render_report(value: int) -> evalcache.FileArtifact:
+    return evalcache.FileArtifact(
+        name="report.txt",
+        data="result={}\n".format(value).encode("utf-8"),
+        media_type="text/plain",
+    )
+
+report = render_report(42)
+report.materialize("first.txt")
+report.materialize("second.txt")  # the same cached computation
+```
+
+`materialize()` writes through a temporary file and atomically replaces the
+destination. `FileArtifact.from_path()` snapshots a backend that can only
+produce a file. This first implementation carries artifact bytes inside the
+cache record; a blob-aware store can later optimize large artifacts without
+changing the operation or decorator API. See `expers/v2_file_artifact.py` for
+an executable cache-hit example.
 
 `Expression.create` snapshots the computation structure and calculates a
 deterministic digest. Arguments must be immutable and deterministically
@@ -102,9 +199,9 @@ The default `PickleSerializer` is only suitable for cache directories trusted
 by the current user. Use a non-executable serializer whenever cache data can
 cross a trust boundary.
 
-`legacy_expression` is a temporary migration bridge. It treats a v1
-`LazyObject` graph as one opaque leaf and validates the resolved result; it is
-not the extension API for new code.
+Domain libraries may use `Expression[T]` and `Evaluator` directly and keep the
+expression inside stable public value types. `legacy_expression` can also
+treat a v1 `LazyObject` graph as one opaque leaf during migration.
 
 ### Contact
 mirmik(mirmikns@yandex.ru)

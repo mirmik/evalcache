@@ -112,14 +112,14 @@ def test_immediate_and_deferred_modes_share_expression_semantics():
     deferred = evalcache.Evaluator(mode=evalcache.EvaluationMode.DEFERRED)
     immediate = evalcache.Evaluator(mode=evalcache.EvaluationMode.IMMEDIATE)
 
-    expression = deferred.submit(
+    deferred_result = deferred.submit(
         add,
         result=spec,
         args=(20, 22),
         operation_id="tests.add",
         operation_version="1",
     )
-    immediate_value = immediate.submit(
+    immediate_result = immediate.submit(
         add,
         result=spec,
         args=(20, 22),
@@ -127,9 +127,10 @@ def test_immediate_and_deferred_modes_share_expression_semantics():
         operation_version="1",
     )
 
-    assert isinstance(expression, evalcache.Expression)
-    assert deferred.evaluate(expression) == 42
-    assert immediate_value == 42
+    assert isinstance(deferred_result, evalcache.Deferred)
+    assert isinstance(immediate_result, evalcache.Deferred)
+    assert deferred.evaluate(deferred_result) == 42
+    assert immediate_result.compute() == 42
 
 
 def test_nested_graph_and_container_resolution_preserve_types():

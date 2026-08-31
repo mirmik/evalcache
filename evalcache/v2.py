@@ -1,25 +1,34 @@
-"""Typed expression and evaluation kernel.
+"""Typed expressions with explicit and decorator-first evaluation APIs.
 
 This module is intentionally independent from application domain types.  It
 does not imitate the Python interface of a value that has not been computed;
-applications keep :class:`Expression` inside their own stable domain handles.
-The original ``LazyObject`` API remains available from :mod:`evalcache.lazy`.
+decorated functions return :class:`Deferred`, while domain libraries may keep
+:class:`Expression` inside their own stable public handles.  The original
+``LazyObject`` API remains available from :mod:`evalcache.lazy`.
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+import functools
 import hashlib
+import inspect
+import operator
+import os
 import pickle
 import struct
+import tempfile
 import types
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import (
     Any,
     Callable,
     Dict,
     Generic,
     Iterable,
+    Iterator,
     Mapping,
     MutableMapping,
     Optional,
@@ -29,6 +38,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_type_hints,
     runtime_checkable,
 )
 
@@ -88,10 +98,20 @@ class Artifact:
     media_type: str = "application/octet-stream"
 
     def __post_init__(self) -> None:
-        if not self.name or "/" in self.name or "\\" in self.name:
-            raise ValueError("artifact name must be a non-empty basename")
-        if not isinstance(self.data, bytes):
-            raise TypeError("artifact data must be bytes")
+        _validate_artifact_fields(self.name, self.data, self.media_type)
+
+
+def _validate_artifact_fields(name: str, data: bytes, media_type: str) -> None:
+    if not isinstance(name, str):
+        raise TypeError("artifact name must be str")
+    if not name or name in (".", "..") or "/" in name or "\\" in name:
+        raise ValueError("artifact name must be a non-empty basename")
+    if not isinstance(data, bytes):
+        raise TypeError("artifact data must be bytes")
+    if not isinstance(media_type, str):
+        raise TypeError("artifact media_type must be str")
+    if not media_type:
+        raise ValueError("artifact media_type must not be empty")
 
 
 @dataclass(frozen=True)
@@ -205,6 +225,133 @@ class ResultSpec(Generic[T]):
                 )
             )
         return typed_value
+
+
+@dataclass(frozen=True)
+class FileArtifact:
+    """Immutable file contents, independent from a materialization path."""
+
+    name: str
+    data: bytes
+    media_type: str = "application/octet-stream"
+
+    def __post_init__(self) -> None:
+        _validate_artifact_fields(self.name, self.data, self.media_type)
+
+    @classmethod
+    def from_path(
+        cls,
+        path: Union[str, os.PathLike[str]],
+        *,
+        name: Optional[str] = None,
+        media_type: str = "application/octet-stream",
+    ) -> "FileArtifact":
+        """Snapshot an existing file into an immutable artifact."""
+
+        source = Path(path).expanduser()
+        return cls(
+            name=source.name if name is None else name,
+            data=source.read_bytes(),
+            media_type=media_type,
+        )
+
+    @property
+    def content_digest(self) -> str:
+        return hashlib.sha256(self.data).hexdigest()
+
+    def __evalcache_key__(self) -> bytes:
+        return _pack(
+            b"file-artifact-v1",
+            self.name.encode("utf-8"),
+            self.media_type.encode("utf-8"),
+            bytes.fromhex(self.content_digest),
+        )
+
+    def materialize(
+        self,
+        path: Union[str, os.PathLike[str]],
+    ) -> Path:
+        """Atomically write this artifact to an explicit destination path."""
+
+        destination = Path(path).expanduser()
+        parent = destination.parent
+        if not parent.is_dir():
+            raise FileNotFoundError(
+                "artifact destination directory does not exist: {}".format(parent)
+            )
+        if destination.is_dir():
+            raise IsADirectoryError(str(destination))
+
+        descriptor, temporary_path = tempfile.mkstemp(
+            prefix=".{}-".format(destination.name),
+            suffix=".tmp",
+            dir=str(parent),
+        )
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(self.data)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary_path, str(destination))
+        finally:
+            try:
+                os.remove(temporary_path)
+            except FileNotFoundError:
+                pass
+        return destination
+
+
+_FILE_ARTIFACT_PAYLOAD = b"evalcache.file-artifact\x00v1"
+
+
+class FileArtifactSerializer:
+    """Store FileArtifact contents through SerializedValue artifacts."""
+
+    serializer_id = "evalcache.file-artifact.v1"
+
+    def dumps(self, value: FileArtifact) -> SerializedValue:
+        if not isinstance(value, FileArtifact):
+            raise TypeError("file artifact serializer requires FileArtifact")
+        return SerializedValue(
+            payload=_FILE_ARTIFACT_PAYLOAD,
+            artifacts=(
+                Artifact(
+                    name=value.name,
+                    data=value.data,
+                    media_type=value.media_type,
+                ),
+            ),
+        )
+
+    def loads(self, value: SerializedValue) -> FileArtifact:
+        if value.payload != _FILE_ARTIFACT_PAYLOAD:
+            raise ValueError("unsupported file artifact cache payload")
+        if len(value.artifacts) != 1:
+            raise ValueError("file artifact cache record must contain one artifact")
+        artifact = value.artifacts[0]
+        return FileArtifact(
+            name=artifact.name,
+            data=artifact.data,
+            media_type=artifact.media_type,
+        )
+
+
+_FILE_ARTIFACT_SERIALIZER = FileArtifactSerializer()
+
+
+def file_artifact_result(
+    *,
+    type_id: str = "evalcache.FileArtifact.v1",
+    validator: Optional[Callable[[FileArtifact], bool]] = None,
+) -> ResultSpec[FileArtifact]:
+    """Return the built-in result contract for materializable files."""
+
+    return ResultSpec.for_type(
+        FileArtifact,
+        type_id=type_id,
+        serializer=_FILE_ARTIFACT_SERIALIZER,
+        validator=validator,
+    )
 
 
 def _expected_type_name(expected_type: ExpectedType) -> str:
@@ -372,6 +519,8 @@ _Argument = Union[
 
 
 def _freeze_argument(value: Any, registry: HashRegistry) -> _Argument:
+    if isinstance(value, Deferred):
+        return value.expression
     if isinstance(value, Expression):
         return value
     if isinstance(value, list):
@@ -598,6 +747,241 @@ class Expression(Generic[T]):
         )
 
 
+_DEFERRED_OPERATOR_RESULT = ResultSpec.for_type(
+    object,
+    type_id="evalcache.operator.dynamic-result.v1",
+)
+
+
+@dataclass(frozen=True, eq=False)
+class Deferred(Generic[T]):
+    """An expression bound to the evaluator that owns its policy and memory."""
+
+    __hash__ = None
+
+    evaluator: "Evaluator" = field(compare=False, repr=False)
+    expression: Expression[T]
+
+    @property
+    def digest(self) -> str:
+        return self.expression.digest
+
+    @property
+    def operation_id(self) -> str:
+        return self.expression.operation_id
+
+    def compute(self) -> T:
+        return self.evaluator.evaluate(self.expression)
+
+    def evaluate(self) -> T:
+        return self.compute()
+
+    def unlazy(self) -> T:
+        """Compatibility spelling for the original decorator-first API."""
+
+        return self.compute()
+
+    def materialize(
+        self,
+        path: Union[str, os.PathLike[str]],
+    ) -> Path:
+        """Compute and materialize a FileArtifact result."""
+
+        value = self.compute()
+        if not isinstance(value, FileArtifact):
+            raise TypeError(
+                "Deferred.materialize requires a FileArtifact result"
+            )
+        return value.materialize(path)
+
+    def _operator(
+        self,
+        name: str,
+        function: Callable[..., Any],
+        *args: Any,
+    ) -> "Deferred[Any]":
+        return self.evaluator.submit(
+            function,
+            result=_DEFERRED_OPERATOR_RESULT,
+            args=args,
+            operation_id="evalcache.operator." + name,
+            operation_version="1",
+        )
+
+    def _unary_operator(
+        self,
+        name: str,
+        function: Callable[[Any], Any],
+    ) -> "Deferred[Any]":
+        return self._operator(name, function, self)
+
+    def _binary_operator(
+        self,
+        other: Any,
+        name: str,
+        function: Callable[[Any, Any], Any],
+    ) -> "Deferred[Any]":
+        return self._operator(name, function, self, other)
+
+    def _reflected_operator(
+        self,
+        other: Any,
+        name: str,
+        function: Callable[[Any, Any], Any],
+    ) -> "Deferred[Any]":
+        return self._operator(name, function, other, self)
+
+    def __pos__(self) -> "Deferred[Any]":
+        return self._unary_operator("positive", operator.pos)
+
+    def __neg__(self) -> "Deferred[Any]":
+        return self._unary_operator("negative", operator.neg)
+
+    def __abs__(self) -> "Deferred[Any]":
+        return self._unary_operator("absolute", operator.abs)
+
+    def __invert__(self) -> "Deferred[Any]":
+        return self._unary_operator("invert", operator.invert)
+
+    def __add__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "add", operator.add)
+
+    def __radd__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "add", operator.add)
+
+    def __sub__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "subtract", operator.sub)
+
+    def __rsub__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "subtract", operator.sub)
+
+    def __mul__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "multiply", operator.mul)
+
+    def __rmul__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "multiply", operator.mul)
+
+    def __truediv__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "true_divide", operator.truediv)
+
+    def __rtruediv__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "true_divide", operator.truediv)
+
+    def __floordiv__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "floor_divide", operator.floordiv)
+
+    def __rfloordiv__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "floor_divide", operator.floordiv)
+
+    def __mod__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "modulo", operator.mod)
+
+    def __rmod__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "modulo", operator.mod)
+
+    def __pow__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "power", operator.pow)
+
+    def __rpow__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "power", operator.pow)
+
+    def __matmul__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "matrix_multiply", operator.matmul)
+
+    def __rmatmul__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(
+            other,
+            "matrix_multiply",
+            operator.matmul,
+        )
+
+    def __and__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "and", operator.and_)
+
+    def __rand__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "and", operator.and_)
+
+    def __or__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "or", operator.or_)
+
+    def __ror__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "or", operator.or_)
+
+    def __xor__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "xor", operator.xor)
+
+    def __rxor__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "xor", operator.xor)
+
+    def __lshift__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "left_shift", operator.lshift)
+
+    def __rlshift__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "left_shift", operator.lshift)
+
+    def __rshift__(self, other: Any) -> "Deferred[Any]":
+        return self._binary_operator(other, "right_shift", operator.rshift)
+
+    def __rrshift__(self, other: Any) -> "Deferred[Any]":
+        return self._reflected_operator(other, "right_shift", operator.rshift)
+
+    def __getitem__(self, key: Any) -> "Deferred[Any]":
+        return self._operator("getitem", operator.getitem, self, key)
+
+    def __iter__(self) -> Iterator[Any]:
+        raise TypeError(
+            "Deferred is not implicitly iterable; call compute() explicitly"
+        )
+
+    def _unsupported_comparison(self) -> bool:
+        raise TypeError(
+            "Deferred comparisons are not supported; call compute() explicitly"
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __ne__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __lt__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __le__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __gt__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __ge__(self, other: object) -> bool:
+        return self._unsupported_comparison()
+
+    def __bool__(self) -> bool:
+        raise TypeError(
+            "Deferred has no implicit truth value; call compute() explicitly"
+        )
+
+
+def _deferred_values(value: Any) -> Iterable[Deferred[Any]]:
+    if isinstance(value, Deferred):
+        yield value
+        return
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            yield from _deferred_values(key)
+            yield from _deferred_values(item)
+        return
+    if isinstance(value, (list, tuple, set, frozenset)):
+        for item in value:
+            yield from _deferred_values(item)
+
+
+def _require_owned_deferred(value: Any, evaluator: "Evaluator") -> None:
+    for deferred in _deferred_values(value):
+        if deferred.evaluator is not evaluator:
+            raise ValueError("cannot mix Deferred values from different evaluators")
+
+
 class EvaluationEventKind(str, Enum):
     START = "start"
     MEMORY_HIT = "memory_hit"
@@ -639,6 +1023,15 @@ class Evaluator:
         self._values: Dict[str, Any] = {}
         self._active: Dict[str, Expression[Any]] = {}
 
+    def __call__(
+        self,
+        function: Optional[Callable[..., T]] = None,
+        **options: Any,
+    ) -> Any:
+        """Use the evaluator itself as a decorator, as with the original Lazy."""
+
+        return self.operation(function, **options)
+
     def expression(
         self,
         operation: Callable[..., T],
@@ -651,6 +1044,8 @@ class Evaluator:
         hash_registry: Optional[HashRegistry] = None,
         cacheable: bool = True,
     ) -> Expression[T]:
+        _require_owned_deferred(args, self)
+        _require_owned_deferred(kwargs or {}, self)
         return Expression.create(
             operation,
             result=result,
@@ -673,7 +1068,7 @@ class Evaluator:
         operation_version: Optional[str] = None,
         hash_registry: Optional[HashRegistry] = None,
         cacheable: bool = True,
-    ) -> Union[Expression[T], T]:
+    ) -> Deferred[T]:
         expression = self.expression(
             operation,
             result=result,
@@ -684,16 +1079,25 @@ class Evaluator:
             hash_registry=hash_registry,
             cacheable=cacheable,
         )
+        deferred = Deferred(self, expression)
         if self.mode is EvaluationMode.IMMEDIATE:
-            return self.evaluate(expression)
-        return expression
+            self.evaluate(expression)
+        return deferred
 
-    def evaluate(self, expression: Expression[T]) -> T:
+    def evaluate(self, expression: Union[Expression[T], Deferred[T]]) -> T:
+        if isinstance(expression, Deferred):
+            if expression.evaluator is not self:
+                raise ValueError(
+                    "cannot evaluate a Deferred owned by another evaluator"
+                )
+            expression = expression.expression
         return cast(T, self._evaluate(expression))
 
     def resolve(self, value: Any) -> Any:
         """Resolve expressions recursively while preserving container types."""
 
+        if isinstance(value, Deferred):
+            return self.evaluate(value)
         if isinstance(value, Expression):
             return self._evaluate(value)
         if isinstance(value, list):
@@ -712,6 +1116,28 @@ class Evaluator:
 
     def clear_memory(self) -> None:
         self._values.clear()
+
+    def operation(
+        self,
+        function: Optional[Callable[..., T]] = None,
+        *,
+        result: Optional[Union[ResultSpec[T], Type[T]]] = None,
+        operation_id: Optional[str] = None,
+        operation_version: Optional[str] = None,
+        hash_registry: Optional[HashRegistry] = None,
+        cacheable: bool = True,
+    ) -> Any:
+        """Decorate a function whose calls produce evaluator-bound Deferred values."""
+
+        return _operation_decorator(
+            function,
+            evaluator=self,
+            result=result,
+            operation_id=operation_id,
+            operation_version=operation_version,
+            hash_registry=hash_registry,
+            cacheable=cacheable,
+        )
 
     def _evaluate(self, expression: Expression[Any]) -> Any:
         self._emit(EvaluationEventKind.START, expression)
@@ -878,6 +1304,192 @@ class Evaluator:
             hook(event)
 
 
+def _operation_result_spec(
+    function: Callable[..., T],
+    result: Optional[Union[ResultSpec[T], Type[T]]],
+) -> ResultSpec[T]:
+    if isinstance(result, ResultSpec):
+        return result
+    if isinstance(result, type):
+        if result is FileArtifact:
+            return cast(ResultSpec[T], file_artifact_result())
+        return ResultSpec.for_type(result)
+    if result is not None:
+        raise TypeError("operation result must be a ResultSpec or runtime type")
+
+    try:
+        annotation = get_type_hints(function).get(
+            "return",
+            inspect.Signature.empty,
+        )
+    except (NameError, TypeError):
+        annotation = inspect.signature(function).return_annotation
+    if annotation is not inspect.Signature.empty and annotation is not Any:
+        if isinstance(annotation, type):
+            if annotation is FileArtifact:
+                return cast(ResultSpec[T], file_artifact_result())
+            return ResultSpec.for_type(annotation)
+
+    type_id = "{}.{}.result".format(
+        getattr(function, "__module__", type(function).__module__),
+        getattr(function, "__qualname__", type(function).__qualname__),
+    )
+    return cast(
+        ResultSpec[T],
+        ResultSpec.for_type(object, type_id=type_id),
+    )
+
+
+class Operation(Generic[T]):
+    """A decorated operation definition that creates Deferred calls."""
+
+    def __init__(
+        self,
+        function: Callable[..., T],
+        *,
+        result: Optional[Union[ResultSpec[T], Type[T]]] = None,
+        evaluator: Optional[Evaluator] = None,
+        operation_id: Optional[str] = None,
+        operation_version: Optional[str] = None,
+        hash_registry: Optional[HashRegistry] = None,
+        cacheable: bool = True,
+    ) -> None:
+        if not callable(function):
+            raise TypeError("operation expects a callable")
+        self.function = function
+        self.result = _operation_result_spec(function, result)
+        self.evaluator = evaluator
+        self.operation_id = operation_id
+        self.operation_version = operation_version
+        self.hash_registry = hash_registry
+        self.cacheable = cacheable
+        functools.update_wrapper(self, function)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Deferred[T]:
+        evaluator = self.evaluator or get_default_evaluator()
+        return evaluator.submit(
+            self.function,
+            result=self.result,
+            args=args,
+            kwargs=kwargs,
+            operation_id=self.operation_id,
+            operation_version=self.operation_version,
+            hash_registry=self.hash_registry,
+            cacheable=self.cacheable,
+        )
+
+    def __get__(self, instance: Any, owner: Type[Any]) -> Any:
+        if instance is None:
+            return self
+        return functools.partial(self.__call__, instance)
+
+
+def _operation_decorator(
+    function: Optional[Callable[..., T]],
+    *,
+    evaluator: Optional[Evaluator],
+    result: Optional[Union[ResultSpec[T], Type[T]]],
+    operation_id: Optional[str],
+    operation_version: Optional[str],
+    hash_registry: Optional[HashRegistry],
+    cacheable: bool,
+) -> Any:
+    def decorate(candidate: Callable[..., T]) -> Operation[T]:
+        return Operation(
+            candidate,
+            result=result,
+            evaluator=evaluator,
+            operation_id=operation_id,
+            operation_version=operation_version,
+            hash_registry=hash_registry,
+            cacheable=cacheable,
+        )
+
+    if function is None:
+        return decorate
+    return decorate(function)
+
+
+_DEFAULT_EVALUATOR = Evaluator()
+_CONFIG_UNSET = object()
+
+
+def get_default_evaluator() -> Evaluator:
+    """Return the process-wide evaluator used by module-level operations."""
+
+    return _DEFAULT_EVALUATOR
+
+
+def set_default_evaluator(evaluator: Evaluator) -> Evaluator:
+    """Replace the process-wide evaluator and return the previous one."""
+
+    if not isinstance(evaluator, Evaluator):
+        raise TypeError("default evaluator must be an Evaluator")
+    global _DEFAULT_EVALUATOR
+    previous = _DEFAULT_EVALUATOR
+    _DEFAULT_EVALUATOR = evaluator
+    return previous
+
+
+def configure(
+    *,
+    mode: Optional[EvaluationMode] = None,
+    cache_policy: Optional[CachePolicy] = None,
+    cache_store: Any = _CONFIG_UNSET,
+    progress_hooks: Optional[Iterable[ProgressHook]] = None,
+) -> Evaluator:
+    """Replace the default evaluator while retaining unspecified policies."""
+
+    current = get_default_evaluator()
+    configured = Evaluator(
+        mode=current.mode if mode is None else mode,
+        cache_policy=(
+            current.cache_policy if cache_policy is None else cache_policy
+        ),
+        cache_store=(
+            current.cache_store if cache_store is _CONFIG_UNSET else cache_store
+        ),
+        progress_hooks=(
+            current.progress_hooks if progress_hooks is None else progress_hooks
+        ),
+    )
+    set_default_evaluator(configured)
+    return configured
+
+
+@contextmanager
+def using_evaluator(evaluator: Evaluator) -> Iterator[Evaluator]:
+    """Temporarily replace the process-wide evaluator for decorated calls."""
+
+    previous = set_default_evaluator(evaluator)
+    try:
+        yield evaluator
+    finally:
+        set_default_evaluator(previous)
+
+
+def operation(
+    function: Optional[Callable[..., T]] = None,
+    *,
+    result: Optional[Union[ResultSpec[T], Type[T]]] = None,
+    operation_id: Optional[str] = None,
+    operation_version: Optional[str] = None,
+    hash_registry: Optional[HashRegistry] = None,
+    cacheable: bool = True,
+) -> Any:
+    """Decorate a function using the process-wide default evaluator at call time."""
+
+    return _operation_decorator(
+        function,
+        evaluator=None,
+        result=result,
+        operation_id=operation_id,
+        operation_version=operation_version,
+        hash_registry=hash_registry,
+        cacheable=cacheable,
+    )
+
+
 def _resolve_legacy_lazy_object(value: Any) -> Any:
     from evalcache.lazy import unlazy
 
@@ -923,21 +1535,31 @@ __all__ = [
     "CacheRecord",
     "CacheRecordError",
     "CacheStore",
+    "Deferred",
     "EvaluationEvent",
     "EvaluationEventKind",
     "EvaluationMode",
     "Evaluator",
     "Expression",
     "ExpressionError",
+    "FileArtifact",
+    "FileArtifactSerializer",
     "HashRegistry",
     "HashingError",
     "MappingCacheStore",
     "MemoryCacheStore",
+    "Operation",
     "PickleSerializer",
     "ProgressHook",
     "ResultSpec",
     "ResultTypeError",
     "SerializedValue",
     "Serializer",
+    "configure",
+    "file_artifact_result",
+    "get_default_evaluator",
     "legacy_expression",
+    "operation",
+    "set_default_evaluator",
+    "using_evaluator",
 ]
