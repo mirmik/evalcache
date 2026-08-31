@@ -14,6 +14,7 @@ setup(
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     license="MIT",
+    license_files=["LICENSE"],
     url="https://github.com/mirmik/evalcache",
     keywords=["caching", "lazy"],
 )

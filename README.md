@@ -203,5 +203,9 @@ Domain libraries may use `Expression[T]` and `Evaluator` directly and keep the
 expression inside stable public value types. `legacy_expression` can also
 treat a v1 `LazyObject` graph as one opaque leaf during migration.
 
+### License
+
+Evalcache is distributed under the [MIT License](LICENSE).
+
 ### Contact
 mirmik(mirmikns@yandex.ru)
