@@ -16,6 +16,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_origin,
     get_type_hints,
 )
 
@@ -33,16 +34,28 @@ from evalcache.hashing import HashRegistry
 T = TypeVar("T")
 
 
+def _runtime_result_type(annotation: Any) -> Optional[Type[Any]]:
+    """Return the runtime-checkable type represented by an annotation."""
+
+    origin = get_origin(annotation)
+    if isinstance(origin, type):
+        return origin
+    if isinstance(annotation, type):
+        return annotation
+    return None
+
+
 def _operation_result_spec(
     function: Callable[..., T],
     result: Optional[Union[ResultSpec[T], Type[T]]],
 ) -> ResultSpec[T]:
     if isinstance(result, ResultSpec):
         return result
-    if isinstance(result, type):
-        if result is FileArtifact:
+    runtime_result_type = _runtime_result_type(result)
+    if runtime_result_type is not None:
+        if runtime_result_type is FileArtifact:
             return cast(ResultSpec[T], file_artifact_result())
-        return ResultSpec.for_type(result)
+        return cast(ResultSpec[T], ResultSpec.for_type(runtime_result_type))
     if result is not None:
         raise TypeError("operation result must be a ResultSpec or runtime type")
 
@@ -54,10 +67,11 @@ def _operation_result_spec(
     except (NameError, TypeError):
         annotation = inspect.signature(function).return_annotation
     if annotation is not inspect.Signature.empty and annotation is not Any:
-        if isinstance(annotation, type):
-            if annotation is FileArtifact:
+        runtime_result_type = _runtime_result_type(annotation)
+        if runtime_result_type is not None:
+            if runtime_result_type is FileArtifact:
                 return cast(ResultSpec[T], file_artifact_result())
-            return ResultSpec.for_type(annotation)
+            return cast(ResultSpec[T], ResultSpec.for_type(runtime_result_type))
 
     type_id = "{}.{}.result".format(
         getattr(function, "__module__", type(function).__module__),

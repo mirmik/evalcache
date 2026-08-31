@@ -32,6 +32,32 @@ def test_evaluator_decorator_infers_result_and_returns_deferred():
     assert evalcache.unlazy_if_need(result) == 42
 
 
+def test_parameterized_result_annotation_uses_runtime_origin():
+    evaluator = evalcache.Evaluator(
+        cache_policy=evalcache.CachePolicy.disabled(),
+    )
+
+    @evaluator
+    def values() -> tuple[int, ...]:
+        return (1, 2, 3)
+
+    assert values.result.expected_type is tuple
+    assert values().compute() == (1, 2, 3)
+
+
+def test_parameterized_result_annotation_still_validates_container_type():
+    evaluator = evalcache.Evaluator(
+        cache_policy=evalcache.CachePolicy.disabled(),
+    )
+
+    @evaluator
+    def invalid_values() -> tuple[int, ...]:
+        return [1, 2, 3]
+
+    with pytest.raises(evalcache.ResultTypeError, match="builtins.tuple"):
+        invalid_values().compute()
+
+
 def test_decorated_calls_form_a_graph_and_preserve_containers():
     calls = {"multiply": 0, "add": 0, "describe": 0}
     evaluator = evalcache.Evaluator(
