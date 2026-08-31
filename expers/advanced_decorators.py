@@ -1,4 +1,4 @@
-"""Расширенные параметры декораторов evalcache v2."""
+"""Расширенные параметры декораторов evalcache."""
 
 import json
 from dataclasses import dataclass

@@ -119,12 +119,8 @@ def test_file_artifact_round_trips_through_directory_cache(tmp_path):
         operation_version="1",
     )
     cache_directory = tmp_path / "cache"
-    first_store = evalcache.MappingCacheStore(
-        evalcache.DirCache_v2(str(cache_directory))
-    )
-    second_store = evalcache.MappingCacheStore(
-        evalcache.DirCache_v2(str(cache_directory))
-    )
+    first_store = evalcache.DirectoryCacheStore(cache_directory)
+    second_store = evalcache.DirectoryCacheStore(cache_directory)
 
     first = evalcache.Evaluator(cache_store=first_store).evaluate(expression)
     second = evalcache.Evaluator(cache_store=second_store).evaluate(expression)

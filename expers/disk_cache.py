@@ -1,4 +1,4 @@
-"""Постоянный кэш v2 поверх существующего файлового DirCache_v2."""
+"""Постоянный кэш с прямым файловым CacheStore."""
 
 import sys
 from pathlib import Path
@@ -21,9 +21,8 @@ def expensive_square(value: int) -> int:
     return value * value
 
 
-def main(cache_dir: str = ".evalcache-v2-example") -> None:
-    mapping = evalcache.DirCache_v2(cache_dir)
-    store = evalcache.MappingCacheStore(mapping)
+def main(cache_dir: str = ".evalcache-example") -> None:
+    store = evalcache.DirectoryCacheStore(cache_dir)
     events = []
 
     first = evalcache.Evaluator(
@@ -49,5 +48,5 @@ def main(cache_dir: str = ".evalcache-v2-example") -> None:
 
 
 if __name__ == "__main__":
-    directory = sys.argv[1] if len(sys.argv) > 1 else ".evalcache-v2-example"
+    directory = sys.argv[1] if len(sys.argv) > 1 else ".evalcache-example"
     main(directory)

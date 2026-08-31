@@ -1,1 +1,0 @@
-Functions with the same name in files with different paths must generate different hashes.

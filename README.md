@@ -1,97 +1,59 @@
 # EvalCache
-Lazy tree evaluation cache library.
 
-![](https://travis-ci.com/mirmik/evalcache.svg?branch=master)
+Decorator-first caching for graphs of expensive Python computations.
 
-## Brief
-The library implements a cache of dependent lazy calculations for working with clean, time-consuming computational tasks, such as symbolic transformations, geometric, numerical algorithms.
+[![CI](https://github.com/mirmik/evalcache/actions/workflows/ci.yml/badge.svg)](https://github.com/mirmik/evalcache/actions/workflows/ci.yml)
 
-The task of the library is to save the result of the computation once performed and, if necessary, load it, saving the computing resources. The algorithm for constructing the hashkey of the computed object uses the input data parameterizing this object, which makes it possible to track changes in the arguments of the lazy algorithm and to postpone the necessary calculations if the conditions have changed. If an lazy object is used as an argument or a generating function, its hashkey is used as its hash. This allows you to build a dependent computational tree. If the input data of an object changes, its hashkey and hashkeys of all objects computed on its basis change. And the subtree will be reevaluated.
-
-Since the library saves every computed object in the cache, including intermediate objects, it can pick up changes in the calculation tree from any step. Thus, previously received data, if they can be applied to a new calculation tree, will be used. This allows you to not make heavy preliminary calculations in separate files, and load them transparently, and also compare results with small changes in input parameters without multiple results remaking.
+EvalCache turns calls to pure functions into deferred expression nodes. The
+result of every node can be reused from memory or a persistent cache, including
+intermediate nodes shared by several computations.
 
 ## Install
+
 ```sh
-python3 -m pip install evalcache
+python -m pip install evalcache
 ```
 
-## Details
-### Base example
-```python
-import evalcache
-
-lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
-
-@lazy
-def func(a,b,c):
-    return do_something(a,b,c)
-
-lazyresult = func(1,2,3)
-result = lazyresult.unlazy() #alternative: result = evalcache.unlazy(lazyresult)
-```
-
-In that example we can see based classes and objects:
-You should instance "evalcache.Lazy" for start work. "Lazy" get "cache" as parametr. Cache is a dict-like object those will store and load our evaluation's results. "Lazy" instance "lazy" can be used as decorator for create "LazyObjects". Decorated object "func" is a LazyObject. "func" can generate another lazyobject, as "lazyresult", for example with callable interface. For get evaluation result we use "unlazy" method.
-
-### Diagnostic  
-We can visualize cache operations:
-```python
-lazy = evalcache.Lazy(cache = cache, diag = True)
-```
-in this mode, when you use unlazy, you will see console output:  
-endp - get endpoint object.  
-fget - get variable from local object store.  
-load - get early stored value from cache.  
-save - evaluation executed and value stored.
-eval - evaluated without storing
-
-### Hash algorithm  
-You can choose algorithm from hashlib or specify user's hashlib-like algorithm.
-```python
-lazy = evalcache.Lazy(cache = cache, algo = hashlib.sha512)
-```
-
-### DirCache
-DirCache is a dict-like object that used pickle to store values in key-named files.
-It very simple cache and it can be changed to more progressive option if need. 
-```python
-lazy = evalcache.Lazy(cache = evalcache.DirCache(".evalcache"))
-```  
-### Articles
-[Дисковое кэширование деревьев ленивых вычислений](https://habr.com/post/422937/)
-
-## Decorated computations and typed expressions (v2)
-
-V2 supports the original decorator-first workflow while using typed expression
-nodes internally. A decorated call always returns `Deferred[T]`; immediate
-mode evaluates it eagerly but retains the same public wrapper type:
+## Basic use
 
 ```python
 import evalcache
 
-evaluator = evalcache.Evaluator(
-    cache_policy=evalcache.CachePolicy.disabled(),
+evalcache.configure(
+    cache_store=evalcache.DirectoryCacheStore(".evalcache"),
 )
 
-@evaluator
-def add(left: int, right: int) -> int:
-    return left + right
+@evalcache.operation
+def preprocess(source: str) -> list[int]:
+    print("preprocessing", source)
+    return [1, 2, 3]
 
-result = add(20, 22)
+@evalcache.operation
+def total(values: list[int]) -> int:
+    return sum(values)
+
+result = total(preprocess("model.step"))
+
+# Decorated calls build a graph and return Deferred values.
 assert isinstance(result, evalcache.Deferred)
-assert result.compute() == 42
-assert result.unlazy() == 42
+print(result.compute())
 ```
 
-The return annotation supplies the default result contract. An unannotated
-operation accepts a dynamic result, while `@evaluator.operation(result=...)`
-can provide an explicit runtime type or `ResultSpec`.
+On the first run, EvalCache evaluates and stores both operations. A fresh
+process can restore their results from `.evalcache` when their operation
+identity and arguments have not changed.
 
-The extended decorator form keeps cache identity and result guarantees close
-to the operation definition:
+The default serializer uses pickle. Only open cache directories trusted by the
+current user.
+
+## Operation identity
+
+By default, EvalCache derives an operation id from the function's module and
+qualified name and derives a version from its Python implementation. For
+long-lived caches, explicit identity makes invalidation intentional:
 
 ```python
-@evaluator.operation(
+@evalcache.operation(
     operation_id="my-project.build-mesh",
     operation_version="3",
     result=Mesh,
@@ -100,39 +62,60 @@ def build_mesh(source: Source) -> Mesh:
     ...
 ```
 
-Keep `operation_id` stable while the meaning of an operation remains stable,
-and increment `operation_version` when old cached results must no longer be
-reused. Other useful options are an explicit `ResultSpec` with a validator or
-custom serializer, `hash_registry` for domain arguments, and
-`cacheable=False` for operations that must not use persistent cache. See
-`expers/v2_advanced_decorators.py` for an executable example combining these
-options.
+Keep `operation_id` stable while the operation retains the same meaning.
+Increment `operation_version` when old cached results must no longer be used.
+A return annotation normally supplies the result contract; `result=` can
+instead accept a runtime type or a `ResultSpec` with a validator or custom
+serializer.
 
-Module-level `@evalcache.operation` looks up the default evaluator when the
-decorated function is called. Policies can therefore be configured once for
-small scripts and experiments:
+Domain arguments must have deterministic identities. Register an encoder with
+`HashRegistry` or implement `__evalcache_key__() -> bytes`:
 
 ```python
-store = evalcache.MemoryCacheStore()
-evalcache.configure(cache_store=store)
+hashes = evalcache.HashRegistry()
+hashes.register(Source, lambda source: source.digest.encode("ascii"))
 
-@evalcache.operation
-def square(value: int) -> int:
-    return value * value
-
-assert square(12).compute() == 144
+@evalcache.operation(hash_registry=hashes)
+def convert(source: Source) -> Mesh:
+    ...
 ```
 
-Use `@evaluator` for explicit policy ownership, `evalcache.configure(...)` for
-process-wide defaults, or `evalcache.using_evaluator(...)` for a temporary
-default. Deferred values from different evaluators cannot be mixed in one
-graph.
+See [advanced_decorators.py](expers/advanced_decorators.py) for operation
+versions, validation, domain hashing, progress events, and non-cacheable
+operations.
 
-`Deferred` supports operations whose lazy meaning is unambiguous. They create
-new expression nodes and do not materialize their operands:
+## Policies and explicit evaluators
+
+Module-level `@evalcache.operation` uses the default evaluator at call time.
+`configure()` replaces its global policies without redecorating functions.
+For libraries or isolated jobs, own the evaluator explicitly:
 
 ```python
-@evaluator
+evaluator = evalcache.Evaluator(
+    cache_store=evalcache.DirectoryCacheStore(".evalcache"),
+    cache_policy=evalcache.CachePolicy(namespace="geometry"),
+)
+
+@evaluator.operation
+def triangulate(shape: Shape) -> Mesh:
+    ...
+```
+
+`using_evaluator()` temporarily changes the default evaluator. Deferred
+values owned by different evaluators cannot be mixed in one graph.
+
+`CachePolicy` controls persistent reads, writes, namespaces, and corrupt
+record recovery. In-memory reuse within an evaluator remains enabled even when
+`CachePolicy.disabled()` disables persistent caching.
+
+## Composing Deferred values
+
+Arguments may contain other Deferred values inside lists, tuples, sets,
+frozensets, and mappings. Operators with unambiguous lazy semantics create new
+expression nodes without computing their operands:
+
+```python
+@evalcache.operation
 def load_values() -> tuple[int, ...]:
     return (6, -4, 3)
 
@@ -141,71 +124,77 @@ result = 10 + values[0] * 2 - abs(values[1])
 assert result.compute() == 18
 ```
 
-Supported operations are unary `+`, `-`, `abs`, and `~`; arithmetic `+`, `-`,
-`*`, `/`, `//`, `%`, and `**`; matrix multiplication `@`; bitwise `&`, `|`,
-`^`, `<<`, and `>>`; and indexing with `[]`. Reflected forms such as
-`10 - deferred` are supported as well. Comparisons and Python control-flow
-boundaries are deliberately separate: comparisons, truth testing, and implicit
-iteration raise `TypeError`, so call `compute()` explicitly when a concrete
-value is required.
+Unary `+`, `-`, `abs`, and `~` are supported, together with arithmetic,
+matrix, bitwise, shift, reflected binary operators, and indexing. Comparisons,
+truth testing, and implicit iteration require an explicit `.compute()`.
 
-### File artifacts
+See [expression_tree.py](expers/expression_tree.py) and
+[operators.py](expers/operators.py).
 
-A file-producing computation can return immutable contents without making its
-destination path part of the expression identity:
+## File artifacts
+
+A file-producing operation can return immutable contents while leaving the
+destination path outside expression identity:
 
 ```python
-@evaluator.operation(
+@evalcache.operation(
     operation_id="my-project.render-report",
     operation_version="1",
-    result=evalcache.file_artifact_result(
-        type_id="my-project.text-report.v1",
-    ),
+    result=evalcache.file_artifact_result(),
 )
 def render_report(value: int) -> evalcache.FileArtifact:
     return evalcache.FileArtifact(
         name="report.txt",
-        data="result={}\n".format(value).encode("utf-8"),
+        data=("result={}\n".format(value)).encode("utf-8"),
         media_type="text/plain",
     )
 
 report = render_report(42)
 report.materialize("first.txt")
-report.materialize("second.txt")  # the same cached computation
+report.materialize("second.txt")
 ```
 
-`materialize()` writes through a temporary file and atomically replaces the
-destination. `FileArtifact.from_path()` snapshots a backend that can only
-produce a file. This first implementation carries artifact bytes inside the
-cache record; a blob-aware store can later optimize large artifacts without
-changing the operation or decorator API. See `expers/v2_file_artifact.py` for
-an executable cache-hit example.
+`FileArtifact.from_path()` snapshots a backend that can only produce a file.
+`materialize()` atomically replaces the selected destination. The current
+serializer stores artifact bytes inside the cache record.
 
-`Expression.create` snapshots the computation structure and calculates a
-deterministic digest. Arguments must be immutable and deterministically
-hashable; application types register an encoder with `HashRegistry` or expose
-`__evalcache_key__() -> bytes`. Lists, tuples, sets, frozensets, and mappings
-retain their container type during resolution.
+See [file_artifact.py](expers/file_artifact.py).
 
-Persistent caching is split into three explicit contracts:
+## Low-level API
 
-- `CachePolicy` controls reads, writes, namespace, and corrupt-record recovery;
-- `CacheStore` stores versioned records (`MemoryCacheStore` and
-  `MappingCacheStore` are supplied);
-- each `ResultSpec[T]` owns a `Serializer[T]`, which may emit named binary
-  `Artifact` values alongside its payload.
+Decorators are the normal entry point. Applications that need explicit domain
+handles may construct `Expression[T]` values and submit or evaluate them with
+`Evaluator`. Storage and serialization are replaceable through the
+`CacheStore` and `Serializer` protocols; `MemoryCacheStore`,
+`DirectoryCacheStore`, and `MappingCacheStore` are included.
 
-The default `PickleSerializer` is only suitable for cache directories trusted
-by the current user. Use a non-executable serializer whenever cache data can
-cross a trust boundary.
+## Original Lazy API
 
-Domain libraries may use `Expression[T]` and `Evaluator` directly and keep the
-expression inside stable public value types. `legacy_expression` can also
-treat a v1 `LazyObject` graph as one opaque leaf during migration.
+The original implementation remains available under `evalcache.legacy`:
 
-### License
+```python
+from evalcache.legacy import DirCache, Lazy
 
-Evalcache is distributed under the [MIT License](LICENSE).
+lazy = Lazy(cache=DirCache(".evalcache"))
 
-### Contact
-mirmik(mirmikns@yandex.ru)
+@lazy
+def calculate(value):
+    return value * 2
+
+assert calculate(21).unlazy() == 42
+```
+
+The historical top-level imports remain as compatibility aliases, but new code
+should use `@evalcache.operation`. See [Legacy API and migration](docs/legacy.md)
+and the [legacy examples](expers/legacy/).
+
+## Further reading
+
+- [Дисковое кэширование деревьев ленивых вычислений](https://habr.com/post/422937/)
+- [Executable examples](expers/)
+
+## License
+
+EvalCache is distributed under the [MIT License](LICENSE).
+
+Contact: mirmik (mirmikns@yandex.ru)

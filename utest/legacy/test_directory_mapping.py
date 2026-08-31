@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from evalcache.dircache_v2 import DirCache_v2
+from evalcache.legacy import DirCache_v2
 
 
 class Unpicklable:

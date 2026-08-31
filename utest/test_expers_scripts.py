@@ -12,7 +12,7 @@ EXPERS_DIR = REPO_ROOT / "expers"
 
 
 def _load_module(module_name):
-    base = EXPERS_DIR / f"{module_name}.py"
+    base = EXPERS_DIR / (module_name + ".py")
     spec = importlib.util.spec_from_file_location(module_name, base)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -20,13 +20,13 @@ def _load_module(module_name):
     return module
 
 
-sympy_test = _load_module("sympy_test")
-testimplicit = _load_module("testimplicit")
+sympy_test = _load_module("legacy/sympy_test")
+testimplicit = _load_module("legacy/testimplicit")
 
 
 def _expers_scripts():
     return sorted(
-        p for p in EXPERS_DIR.glob("*.py") if p.name != "__init__.py"
+        p for p in EXPERS_DIR.rglob("*.py") if p.name != "__init__.py"
     )
 
 

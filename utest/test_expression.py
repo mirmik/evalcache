@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pytest
 
 import evalcache
-from evalcache.dircache_v2 import DirCache_v2
+from evalcache.legacy import Lazy
 
 
 def add(left, right):
@@ -198,17 +198,41 @@ def test_persistent_cache_round_trip_and_progress_events():
     assert evalcache.EvaluationEventKind.CACHE_HIT in kinds
 
 
-def test_mapping_store_adapts_dircache_v2(tmp_path):
-    first_mapping = DirCache_v2(str(tmp_path / "cache"))
-    first_store = evalcache.MappingCacheStore(first_mapping)
+def test_mapping_store_adapts_mutable_mapping():
+    mapping = {}
+    first_store = evalcache.MappingCacheStore(mapping)
     expression = int_expression(20, 22)
 
     assert evalcache.Evaluator(cache_store=first_store).evaluate(expression) == 42
 
-    second_mapping = DirCache_v2(str(tmp_path / "cache"))
-    second_store = evalcache.MappingCacheStore(second_mapping)
+    second_store = evalcache.MappingCacheStore(mapping)
     evaluator = evalcache.Evaluator(cache_store=second_store)
     assert evaluator.evaluate(expression) == 42
+
+
+def test_directory_cache_store_round_trip(tmp_path):
+    cache_directory = tmp_path / "cache"
+    expression = int_expression(20, 22)
+
+    first_store = evalcache.DirectoryCacheStore(cache_directory)
+    assert isinstance(first_store, evalcache.CacheStore)
+    assert evalcache.Evaluator(cache_store=first_store).evaluate(expression) == 42
+
+    second_store = evalcache.DirectoryCacheStore(cache_directory)
+    assert evalcache.Evaluator(cache_store=second_store).evaluate(expression) == 42
+    assert any(
+        path.is_file()
+        for prefix in cache_directory.iterdir()
+        if prefix.name != "tmp" and prefix.is_dir()
+        for path in prefix.iterdir()
+    )
+
+    unrelated = cache_directory / "notes" / "keep.txt"
+    unrelated.parent.mkdir()
+    unrelated.write_text("not a cache record", encoding="utf-8")
+    second_store.clear()
+    assert unrelated.read_text(encoding="utf-8") == "not a cache record"
+    assert evalcache.Evaluator(cache_store=second_store).evaluate(expression) == 42
 
 
 def test_result_type_mismatch_is_reported_at_evaluator_boundary():
@@ -285,7 +309,7 @@ def test_external_domain_type_uses_registered_hash_and_artifact_serializer():
 
 
 def test_legacy_lazy_object_adapter_is_an_explicit_opaque_leaf():
-    lazy = evalcache.Lazy(cache={}, encache=False, decache=False)
+    lazy = Lazy(cache={}, encache=False, decache=False)
 
     @lazy
     def old_add(left, right):

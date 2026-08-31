@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import types
 import unittest
-import test_environment
+import environment as test_environment
 import evalcache
 import hashlib
 

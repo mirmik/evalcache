@@ -1,10 +1,11 @@
-"""Временный мост от старого LazyObject к typed Expression v2."""
+"""Временный мост от старого LazyObject к Expression."""
 
 import evalcache
+from evalcache.legacy import Lazy
 
 
 def main() -> None:
-    legacy = evalcache.Lazy(cache={}, encache=False, decache=False)
+    legacy = Lazy(cache={}, encache=False, decache=False)
 
     @legacy
     def old_add(left: int, right: int) -> int:
@@ -27,7 +28,7 @@ def main() -> None:
     result = double(expression).compute()
     assert result == 84
     assert expression.cacheable is False
-    print("Результат старого графа внутри v2:", result)
+    print("Результат старого графа внутри нового API:", result)
 
 
 if __name__ == "__main__":
